@@ -1,6 +1,11 @@
 import { create } from 'zustand'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabaseClient'
+import { setAdminToken } from '@/lib/adminToken'
+
+function syncToken(session: Session | null) {
+  setAdminToken(session?.access_token ?? null)
+}
 
 interface AuthState {
   session: Session | null
@@ -27,9 +32,11 @@ export const useAuthStore = create<AuthState>((set) => ({
       return
     }
     const { data } = await supabase.auth.getSession()
+    syncToken(data.session)
     set({ session: data.session, user: data.session?.user ?? null, loading: false })
 
     supabase.auth.onAuthStateChange((_event, session) => {
+      syncToken(session)
       set({ session, user: session?.user ?? null, loading: false })
     })
   },
@@ -45,12 +52,14 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ error: error.message, loading: false })
       return false
     }
+    syncToken(data.session)
     set({ session: data.session, user: data.user, loading: false })
     return true
   },
 
   signOut: async () => {
     if (supabase) await supabase.auth.signOut()
+    syncToken(null)
     set({ session: null, user: null, error: null })
   },
 }))

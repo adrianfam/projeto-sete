@@ -19,6 +19,28 @@ const AdminDashboard = lazy(() =>
 const AdminPlaceholder = lazy(() =>
   import('@/pages/admin/AdminPlaceholder').then((m) => ({ default: m.AdminPlaceholder })),
 )
+const AdminBlog = lazy(() => import('@/pages/admin/AdminBlog').then((m) => ({ default: m.AdminBlog })))
+const BlogEditor = lazy(() =>
+  import('@/pages/admin/BlogEditor').then((m) => ({ default: m.BlogEditor })),
+)
+const AdminComments = lazy(() =>
+  import('@/pages/admin/AdminComments').then((m) => ({ default: m.AdminComments })),
+)
+const AdminPortfolio = lazy(() =>
+  import('@/pages/admin/AdminPortfolio').then((m) => ({ default: m.AdminPortfolio })),
+)
+const PortfolioEditor = lazy(() =>
+  import('@/pages/admin/PortfolioEditor').then((m) => ({ default: m.PortfolioEditor })),
+)
+const AdminTestimonials = lazy(() =>
+  import('@/pages/admin/AdminTestimonials').then((m) => ({ default: m.AdminTestimonials })),
+)
+const AdminInstagram = lazy(() =>
+  import('@/pages/admin/AdminInstagram').then((m) => ({ default: m.AdminInstagram })),
+)
+const AdminContact = lazy(() =>
+  import('@/pages/admin/AdminContact').then((m) => ({ default: m.AdminContact })),
+)
 
 const suspense = (el: React.ReactNode) => <Suspense fallback={<LoadingState />}>{el}</Suspense>
 
@@ -48,19 +70,19 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Protected>{suspense(<AdminDashboard />)}</Protected> },
       { path: 'dashboard', element: <Protected>{suspense(<AdminDashboard />)}</Protected> },
-      { path: 'blog', element: adminSection('Blog') },
-      { path: 'blog/new', element: adminSection('Novo post') },
-      { path: 'blog/:id', element: adminSection('Editar post') },
-      { path: 'portfolio', element: adminSection('Portfólio') },
-      { path: 'portfolio/new', element: adminSection('Novo item') },
-      { path: 'portfolio/:id', element: adminSection('Editar item') },
+      { path: 'blog', element: <Protected>{suspense(<AdminBlog />)}</Protected> },
+      { path: 'blog/new', element: <Protected>{suspense(<BlogEditor />)}</Protected> },
+      { path: 'blog/:id', element: <Protected>{suspense(<BlogEditor />)}</Protected> },
+      { path: 'portfolio', element: <Protected>{suspense(<AdminPortfolio />)}</Protected> },
+      { path: 'portfolio/new', element: <Protected>{suspense(<PortfolioEditor />)}</Protected> },
+      { path: 'portfolio/:id', element: <Protected>{suspense(<PortfolioEditor />)}</Protected> },
       { path: 'cases', element: adminSection('Estudos de Caso') },
       { path: 'cases/new', element: adminSection('Novo caso') },
       { path: 'cases/:id', element: adminSection('Editar caso') },
-      { path: 'testimonials', element: adminSection('Depoimentos') },
-      { path: 'instagram', element: adminSection('Instagram') },
-      { path: 'comments', element: adminSection('Comentários') },
-      { path: 'contact', element: adminSection('Atendimento') },
+      { path: 'testimonials', element: <Protected>{suspense(<AdminTestimonials />)}</Protected> },
+      { path: 'instagram', element: <Protected>{suspense(<AdminInstagram />)}</Protected> },
+      { path: 'comments', element: <Protected>{suspense(<AdminComments />)}</Protected> },
+      { path: 'contact', element: <Protected>{suspense(<AdminContact />)}</Protected> },
       { path: '*', element: suspense(<NotFound />) },
     ],
   },

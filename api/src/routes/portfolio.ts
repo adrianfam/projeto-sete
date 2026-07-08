@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify'
 import { getSupabaseAdmin } from '../lib/supabaseAdmin'
 import { portfolioQuerySchema, portfolioItemInputSchema } from '@projeto-sete/shared'
 import { adminGuard } from '../lib/auth'
+import { toSnake } from '../lib/case'
 
 export const portfolioRoutes: FastifyPluginAsync = async (app) => {
   // Lista pública publicados.
@@ -41,14 +42,38 @@ export const portfolioRoutes: FastifyPluginAsync = async (app) => {
   })
 
   // --- Admin CRUD ---
+  app.get('/admin/portfolio', { preHandler: adminGuard }, async (_req, reply) => {
+    const sb = getSupabaseAdmin()
+    const { data, error } = await sb
+      .from('portfolio_items')
+      .select('id,title,slug,project_type,is_published,is_featured,position,updated_at')
+      .is('deleted_at', null)
+      .order('position', { ascending: true })
+    if (error) return reply.code(500).send({ message: error.message })
+    return { items: data ?? [] }
+  })
+
+  app.get('/admin/portfolio/:id', { preHandler: adminGuard }, async (req, reply) => {
+    const { id } = req.params as { id: string }
+    const sb = getSupabaseAdmin()
+    const { data, error } = await sb
+      .from('portfolio_items')
+      .select('*')
+      .eq('id', id)
+      .is('deleted_at', null)
+      .maybeSingle()
+    if (error) return reply.code(500).send({ message: error.message })
+    if (!data) return reply.code(404).send({ message: 'Item não encontrado.' })
+    return { item: data }
+  })
+
   app.post('/portfolio', { preHandler: adminGuard }, async (req, reply) => {
     const input = portfolioItemInputSchema.parse(req.body)
     const sb = getSupabaseAdmin()
-    const { publishedAt, ...rest } = input
-    const payload = {
-      ...rest,
-      published_at: input.isPublished ? publishedAt ?? new Date().toISOString() : null,
-    }
+    const payload = toSnake({
+      ...input,
+      publishedAt: input.isPublished ? input.publishedAt ?? new Date().toISOString() : null,
+    })
     const { data, error } = await sb.from('portfolio_items').insert(payload).select().single()
     if (error) return reply.code(400).send({ message: error.message })
     return reply.code(201).send({ item: data })
@@ -58,9 +83,20 @@ export const portfolioRoutes: FastifyPluginAsync = async (app) => {
     const { id } = req.params as { id: string }
     const input = portfolioItemInputSchema.partial().parse(req.body)
     const sb = getSupabaseAdmin()
+    const publishedAt =
+      input.isPublished === undefined
+        ? undefined
+        : input.isPublished
+          ? input.publishedAt ?? new Date().toISOString()
+          : null
+    const payload = toSnake({
+      ...input,
+      publishedAt,
+      updatedAt: new Date().toISOString(),
+    })
     const { data, error } = await sb
       .from('portfolio_items')
-      .update({ ...input, updated_at: new Date().toISOString() })
+      .update(payload)
       .eq('id', id)
       .is('deleted_at', null)
       .select()

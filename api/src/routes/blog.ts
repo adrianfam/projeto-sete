@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify'
 import { getSupabaseAdmin } from '../lib/supabaseAdmin'
 import { blogQuerySchema, blogPostInputSchema } from '@projeto-sete/shared'
 import { adminGuard } from '../lib/auth'
+import { toSnake } from '../lib/case'
 
 export const blogRoutes: FastifyPluginAsync = async (app) => {
   // Lista pública (paginada, filtro por tag, busca).
@@ -58,14 +59,39 @@ export const blogRoutes: FastifyPluginAsync = async (app) => {
   })
 
   // --- Admin CRUD ---
+  app.get('/admin/blog', { preHandler: adminGuard }, async (_req, reply) => {
+    const sb = getSupabaseAdmin()
+    const { data, error } = await sb
+      .from('blog_posts')
+      .select('id,title,slug,excerpt,is_published,published_at,author,reading_minutes,updated_at')
+      .is('deleted_at', null)
+      .order('published_at', { ascending: false, nullsFirst: false })
+    if (error) return reply.code(500).send({ message: error.message })
+    return { items: data ?? [] }
+  })
+
+  app.get('/admin/blog/:id', { preHandler: adminGuard }, async (req, reply) => {
+    const { id } = req.params as { id: string }
+    const sb = getSupabaseAdmin()
+    const { data, error } = await sb
+      .from('blog_posts')
+      .select('*')
+      .eq('id', id)
+      .is('deleted_at', null)
+      .maybeSingle()
+    if (error) return reply.code(500).send({ message: error.message })
+    if (!data) return reply.code(404).send({ message: 'Post não encontrado.' })
+    return { post: data }
+  })
+
   app.post('/blog', { preHandler: adminGuard }, async (req, reply) => {
     const input = blogPostInputSchema.parse(req.body)
     const sb = getSupabaseAdmin()
-    const payload = {
+    const payload = toSnake({
       ...input,
-      reading_minutes: input.readingMinutes ?? estimateReadingMinutes(input.body),
-      published_at: input.isPublished ? input.publishedAt ?? new Date().toISOString() : null,
-    }
+      readingMinutes: input.readingMinutes ?? estimateReadingMinutes(input.body),
+      publishedAt: input.isPublished ? input.publishedAt ?? new Date().toISOString() : null,
+    })
     const { data, error } = await sb.from('blog_posts').insert(payload).select().single()
     if (error) return reply.code(400).send({ message: error.message })
     return reply.code(201).send({ post: data })
@@ -76,10 +102,22 @@ export const blogRoutes: FastifyPluginAsync = async (app) => {
     const input = blogPostInputSchema.partial().parse(req.body)
     const sb = getSupabaseAdmin()
     const body = input.body
-    const reading = body ? { reading_minutes: estimateReadingMinutes(body) } : {}
+    const reading = body ? { readingMinutes: estimateReadingMinutes(body) } : {}
+    const publishedAt =
+      input.isPublished === undefined
+        ? undefined
+        : input.isPublished
+          ? input.publishedAt ?? new Date().toISOString()
+          : null
+    const payload = toSnake({
+      ...input,
+      ...reading,
+      publishedAt,
+      updatedAt: new Date().toISOString(),
+    })
     const { data, error } = await sb
       .from('blog_posts')
-      .update({ ...input, ...reading, updated_at: new Date().toISOString() })
+      .update(payload)
       .eq('id', id)
       .is('deleted_at', null)
       .select()

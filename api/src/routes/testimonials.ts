@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify'
 import { getSupabaseAdmin } from '../lib/supabaseAdmin'
 import { testimonialInputSchema } from '@projeto-sete/shared'
 import { adminGuard } from '../lib/auth'
+import { toSnake } from '../lib/case'
 
 export const testimonialRoutes: FastifyPluginAsync = async (app) => {
   app.get('/testimonials', async (_req, reply) => {
@@ -18,7 +19,11 @@ export const testimonialRoutes: FastifyPluginAsync = async (app) => {
   app.post('/testimonials', { preHandler: adminGuard }, async (req, reply) => {
     const input = testimonialInputSchema.parse(req.body)
     const sb = getSupabaseAdmin()
-    const { data, error } = await sb.from('testimonials').insert(input).select().single()
+    const { data, error } = await sb
+      .from('testimonials')
+      .insert(toSnake(input))
+      .select()
+      .single()
     if (error) return reply.code(400).send({ message: error.message })
     return reply.code(201).send({ item: data })
   })
@@ -29,7 +34,7 @@ export const testimonialRoutes: FastifyPluginAsync = async (app) => {
     const sb = getSupabaseAdmin()
     const { data, error } = await sb
       .from('testimonials')
-      .update({ ...input, updated_at: new Date().toISOString() })
+      .update(toSnake({ ...input, updatedAt: new Date().toISOString() }))
       .eq('id', id)
       .select()
       .maybeSingle()

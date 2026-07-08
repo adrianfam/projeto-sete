@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify'
 import { getSupabaseAdmin } from '../lib/supabaseAdmin'
 import { caseStudyInputSchema } from '@projeto-sete/shared'
 import { adminGuard } from '../lib/auth'
+import { toSnake } from '../lib/case'
 
 export const caseStudyRoutes: FastifyPluginAsync = async (app) => {
   app.get('/cases', async (_req, reply) => {
@@ -36,10 +37,10 @@ export const caseStudyRoutes: FastifyPluginAsync = async (app) => {
   app.post('/cases', { preHandler: adminGuard }, async (req, reply) => {
     const input = caseStudyInputSchema.parse(req.body)
     const sb = getSupabaseAdmin()
-    const payload = {
+    const payload = toSnake({
       ...input,
-      published_at: input.isPublished ? input.publishedAt ?? new Date().toISOString() : null,
-    }
+      publishedAt: input.isPublished ? input.publishedAt ?? new Date().toISOString() : null,
+    })
     const { data, error } = await sb.from('case_studies').insert(payload).select().single()
     if (error) return reply.code(400).send({ message: error.message })
     return reply.code(201).send({ item: data })
@@ -49,9 +50,16 @@ export const caseStudyRoutes: FastifyPluginAsync = async (app) => {
     const { id } = req.params as { id: string }
     const input = caseStudyInputSchema.partial().parse(req.body)
     const sb = getSupabaseAdmin()
+    const publishedAt =
+      input.isPublished === undefined
+        ? undefined
+        : input.isPublished
+          ? input.publishedAt ?? new Date().toISOString()
+          : null
+    const payload = toSnake({ ...input, publishedAt, updatedAt: new Date().toISOString() })
     const { data, error } = await sb
       .from('case_studies')
-      .update({ ...input, updated_at: new Date().toISOString() })
+      .update(payload)
       .eq('id', id)
       .is('deleted_at', null)
       .select()
