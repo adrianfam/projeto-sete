@@ -7,6 +7,10 @@ import { ComingSoon } from '@/pages/ComingSoon'
 
 const Landing = lazy(() => import('@/pages/Landing').then((m) => ({ default: m.Landing })))
 const NotFound = lazy(() => import('@/pages/NotFound').then((m) => ({ default: m.NotFound })))
+const BlogList = lazy(() => import('@/pages/BlogList').then((m) => ({ default: m.BlogList })))
+const BlogPostPage = lazy(() =>
+  import('@/pages/BlogPostPage').then((m) => ({ default: m.BlogPostPage })),
+)
 const AdminLogin = lazy(() => import('@/pages/admin/AdminLogin').then((m) => ({ default: m.AdminLogin })))
 const AdminLayout = lazy(() => import('@/pages/admin/AdminLayout').then((m) => ({ default: m.AdminLayout })))
 const AdminDashboard = lazy(() =>
@@ -30,8 +34,8 @@ export const router = createBrowserRouter([
       { path: '/portfolio', element: suspense(<ComingSoon title="Portfólio" path="/portfolio" />) },
       { path: '/portfolio/:slug', element: suspense(<ComingSoon title="Projeto" path="/portfolio/x" />) },
       { path: '/cases/:slug', element: suspense(<ComingSoon title="Estudo de Caso" path="/cases/x" />) },
-      { path: '/blog', element: suspense(<ComingSoon title="Blog" path="/blog" />) },
-      { path: '/blog/:slug', element: suspense(<ComingSoon title="Artigo" path="/blog/x" />) },
+      { path: '/blog', element: suspense(<BlogList />) },
+      { path: '/blog/:slug', element: suspense(<BlogPostPage />) },
       { path: '/sobre', element: suspense(<ComingSoon title="Sobre a Projeto Sete" path="/sobre" />) },
       { path: '/contato', element: suspense(<ComingSoon title="Contato" path="/contato" />) },
       { path: '*', element: suspense(<NotFound />) },

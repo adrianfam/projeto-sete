@@ -84,6 +84,49 @@
   }
 }
 
+/* Tipografia editorial do corpo do artigo (markdown renderizado) */
+@layer components {
+  .prose-blog {
+    @apply leading-relaxed;
+  }
+  .prose-blog > * + * {
+    @apply mt-5;
+  }
+  .prose-blog h2 {
+    @apply font-serif text-2xl text-ink mt-10;
+  }
+  .prose-blog h3 {
+    @apply font-serif text-xl text-ink mt-8;
+  }
+  .prose-blog p {
+    @apply text-smoke;
+  }
+  .prose-blog a {
+    @apply text-brass link-underline;
+  }
+  .prose-blog strong {
+    @apply text-ink font-semibold;
+  }
+  .prose-blog ul {
+    @apply list-disc space-y-2 pl-6 text-smoke;
+  }
+  .prose-blog ol {
+    @apply list-decimal space-y-2 pl-6 text-smoke;
+  }
+  .prose-blog blockquote {
+    @apply border-l-2 border-brass pl-4 italic text-smoke;
+  }
+  .prose-blog code {
+    @apply bg-cream px-1.5 py-0.5 text-sm text-clay;
+  }
+  .prose-blog pre {
+    @apply overflow-x-auto bg-charcoal p-4 text-sm text-paper;
+  }
+  .prose-blog pre code {
+    @apply bg-transparent p-0 text-paper;
+  }
+}
+
 /* Respeita usuários que pedem menos movimento */
 @media (prefers-reduced-motion: reduce) {
   *,
