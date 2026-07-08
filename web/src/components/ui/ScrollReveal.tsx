@@ -1,0 +1,44 @@
+import { motion } from 'framer-motion'
+import { useReducedMotion } from 'framer-motion'
+import type { Variants } from 'framer-motion'
+
+/**
+ * Revela conteúdo ao entrar na viewport. Respeita reduced-motion
+ * (thora-only) e dispara uma única vez. Direção = translateY curto.
+ */
+export function ScrollReveal({
+  children,
+  delay = 0,
+  className,
+  as = 'div',
+}: {
+  children: React.ReactNode
+  delay?: number
+  className?: string
+  as?: 'div' | 'section' | 'article' | 'li'
+}) {
+  const reduce = useReducedMotion()
+
+  const variants: Variants = {
+    hidden: reduce ? { opacity: 0 } : { opacity: 0, y: 24 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1], delay },
+    },
+  }
+
+  const MotionTag = motion[as] ?? motion.div
+
+  return (
+    <MotionTag
+      className={className}
+      variants={variants}
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, amount: 0.3 }}
+    >
+      {children}
+    </MotionTag>
+  )
+}

@@ -1,0 +1,35 @@
+{
+  "name": "projeto-sete",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Projeto Sete — Móveis Planejados e Marcenaria. Site institucional + CMS (Vite+React / Fastify / Supabase).",
+  "workspaces": [
+    "web",
+    "api",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "concurrently -n web,api -c cyan,magenta \"npm:dev:web\" \"npm:dev:api\"",
+    "dev:web": "npm -w web run dev",
+    "dev:api": "npm -w api run dev",
+    "build": "npm run build:shared && npm run build:api && npm run build:web",
+    "build:web": "npm -w web run build",
+    "build:api": "npm -w api run build",
+    "build:shared": "npm -w shared run build",
+    "lint": "npm run lint --workspaces --if-present",
+    "lint:fix": "npm run lint:fix --workspaces --if-present",
+    "format": "prettier --write \"**/*.{ts,tsx,css,md,json}\" --ignore-path .prettierignore",
+    "format:check": "prettier --check \"**/*.{ts,tsx,css,md,json}\" --ignore-path .prettierignore",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "db:seed": "node api/scripts/seed.mjs"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "prettier": "^3.4.2",
+    "prettier-plugin-tailwindcss": "^0.6.9"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

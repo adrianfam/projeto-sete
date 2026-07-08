@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-paper text-ink font-sans antialiased;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-serif;
+  }
+
+  /* Foco visível acessível com o acento brass */
+  *:focus-visible {
+    @apply outline outline-2 outline-brass outline-offset-2;
+  }
+
+  ::selection {
+    background: rgba(176, 131, 66, 0.25);
+    color: #0e0f11;
+  }
+}
+
+@layer components {
+  .eyebrow {
+    @apply text-xs uppercase font-sans font-semibold text-brass;
+    letter-spacing: 0.2em;
+  }
+
+  .section-rule {
+    @apply mt-4 h-px w-12 bg-brass;
+  }
+
+  .container-px {
+    @apply mx-auto max-w-7xl px-6;
+  }
+
+  /** Linha divisória mate de cartão (sem sombra) */
+  .card-line {
+    @apply border border-mist/40;
+  }
+
+  /** Link com sublinhado animado em brass */
+  .link-underline {
+    @apply relative inline-block;
+  }
+  .link-underline::after {
+    content: '';
+    @apply absolute -bottom-0.5 left-0 h-px w-0 bg-brass transition-all duration-500 ease-refined;
+  }
+  .link-underline:hover::after {
+    @apply w-full;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .text-pretty {
+    text-wrap: pretty;
+  }
+  /* Esconde inlet de scrollbar mas mantém scroll */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* Respeita usuários que pedem menos movimento */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

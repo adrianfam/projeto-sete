@@ -1,0 +1,13 @@
+{
+  "name": "Projeto Sete — Móveis Planejados",
+  "short_name": "Projeto Sete",
+  "description": "Móveis sob medida de alto padrão em Fortaleza.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#15171A",
+  "theme_color": "#15171A",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

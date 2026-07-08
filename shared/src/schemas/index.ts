@@ -1,0 +1,6 @@
+export * from './portfolio'
+export * from './caseStudy'
+export * from './testimonial'
+export * from './blog'
+export * from './comment'
+export * from './contact'
