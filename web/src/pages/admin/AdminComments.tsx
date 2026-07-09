@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Seo } from '@/components/seo/Seo'
 import { useAdminApi, adminRequest } from '@/hooks/useAdminApi'
+import { Button } from '@/components/ui/Button'
 import { LoadingState } from '@/components/ui/LoadingState'
 import { formatDate } from '@/lib/utils'
 import type { CommentStatus } from '@projeto-sete/shared'
@@ -51,10 +52,7 @@ export function AdminComments() {
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={
-              'border px-3 py-1 text-sm ' +
-              (filter === f ? 'border-brass bg-brass text-charcoal' : 'border-mist/60 text-smoke')
-            }
+            className={filter === f ? 'admin-tab admin-tab-active' : 'admin-tab'}
           >
             {labelOf(f)}
           </button>
@@ -69,7 +67,7 @@ export function AdminComments() {
       {items.length > 0 && (
         <ul className="mt-6 space-y-4">
           {items.map((c) => (
-            <li key={c.id} className="card-line rounded bg-paper p-5">
+            <li key={c.id} className="card-line bg-paper p-5">
               <div className="flex items-baseline justify-between gap-4">
                 <p className="font-medium text-ink">{c.author_name}</p>
                 <p className="text-xs text-smoke">{formatDate(c.created_at)}</p>
@@ -85,20 +83,22 @@ export function AdminComments() {
                 >
                   Aprovar
                 </ActBtn>
-                <ActBtn
+                <Button
+                  size="sm"
+                  variant="ghost"
                   onClick={() => moderate(c.id, 'rejected')}
                   disabled={busyId === c.id}
-                  tone="muted"
                 >
                   Rejeitar
-                </ActBtn>
-                <ActBtn
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
                   onClick={() => moderate(c.id, 'spam')}
                   disabled={busyId === c.id}
-                  tone="muted"
                 >
                   Spam
-                </ActBtn>
+                </Button>
                 <ActBtn
                   onClick={() => moderate(c.id, 'delete')}
                   disabled={busyId === c.id}

@@ -72,7 +72,7 @@
   │   │   ├── main.tsx                    # Entry point
   │   │   ├── App.tsx
   │   │   ├── router.tsx                  # Rotas React Router
-  │   │   ├── styles/tailwind.css         # Estilos globais + componentes Tailwind
+  │   │   ├── styles/tailwind.css         # Estilos globais + componentes Tailwind (inclui classes do admin)
   │   │   ├── components/                 # Componentes compartilhados
   │   │   │   ├── layout/                 # Navbar, Footer, RootLayout, WhatsAppFloat
   │   │   │   ├── ui/                     # Button, Container, Section, ScrollReveal, etc.
@@ -401,6 +401,22 @@
     .prose-blog       → Tipografia para posts do blog
     .link-underline   → Underline animado em links
 
+    ┌─ ADMIN ───────────────────────────────────────────────────────────────┐
+    │                                                                          │
+    │  Classes exclusivas para o painel administrativo:                       │
+    │                                                                          │
+    │  .card-line       → Card com borda, sombra sutil e rounded-lg           │
+    │  .admin-input     → Input com rounded-lg, ring focus, transição         │
+    │  .admin-row       → Linha de tabela com hover highlight                 │
+    │  .admin-tab       → Aba de filtro (neutral)                            │
+    │  .admin-tab-active→ Aba de filtro ativa (brass)                        │
+    │  .btn-outline-sm  → Link com estilo de botão outline pequeno           │
+    │                                                                          │
+    │  NOTA: .card-line estava undefined — não renderizava borda/sombra.      │
+    │  Foi definido em tailwind.css para corrigir todos os cards do admin.    │
+    │                                                                          │
+    └──────────────────────────────────────────────────────────────────────────┘
+
   8.4 Animações
 
     shimmer:   2s, linear, infinito  (skeleton loading)
@@ -583,5 +599,5 @@
 
 ================================================================================
   FIM DA DOCUMENTAÇÃO
-  Última atualização: Julho 2026 (v2 — parallax otimizado + LQIP)
+  Última atualização: Julho 2026 (v3 — admin visual overhaul + sidebar icons + mobile nav)
 ================================================================================

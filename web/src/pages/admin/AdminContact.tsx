@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Seo } from '@/components/seo/Seo'
 import { useAdminApi, adminRequest } from '@/hooks/useAdminApi'
+import { Button } from '@/components/ui/Button'
 import { LoadingState } from '@/components/ui/LoadingState'
 import { formatDate } from '@/lib/utils'
 import { ApiError } from '@/lib/apiClient'
@@ -44,10 +45,7 @@ export function AdminContact() {
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={
-              'border px-3 py-1 text-sm ' +
-              (filter === f ? 'border-brass bg-brass text-charcoal' : 'border-mist/60 text-smoke')
-            }
+            className={filter === f ? 'admin-tab admin-tab-active' : 'admin-tab'}
           >
             {{ new: 'Novas', read: 'Lidas', replied: 'Respondidas', archived: 'Arquivadas' }[f]}
           </button>
@@ -62,7 +60,7 @@ export function AdminContact() {
       {items.length > 0 && (
         <ul className="mt-6 space-y-4">
           {items.map((m) => (
-            <li key={m.id} className="card-line rounded bg-paper p-5">
+            <li key={m.id} className="card-line bg-paper p-5">
               <div className="flex items-baseline justify-between gap-4">
                 <p className="font-medium text-ink">{m.name}</p>
                 <p className="text-xs text-smoke">{formatDate(m.created_at)}</p>
@@ -72,15 +70,19 @@ export function AdminContact() {
               <p className="mt-2 whitespace-pre-line text-sm text-smoke">{m.message}</p>
 
               <div className="mt-4 flex flex-wrap gap-2">
-                <button onClick={() => setStatus(m.id, 'read')} className="border border-mist/60 px-3 py-1 text-xs hover:border-ink">Marcar lida</button>
+                <Button size="sm" variant="ghost" onClick={() => setStatus(m.id, 'read')}>
+                  Marcar lida
+                </Button>
                 <a
                   href={`mailto:${m.email}`}
                   onClick={() => setStatus(m.id, 'replied')}
-                  className="border border-brass/50 px-3 py-1 text-xs text-brass hover:bg-brass/10"
+                  className="btn-outline-sm"
                 >
                   Responder
                 </a>
-                <button onClick={() => setStatus(m.id, 'archived')} className="border border-mist/60 px-3 py-1 text-xs hover:border-ink">Arquivar</button>
+                <Button size="sm" variant="ghost" onClick={() => setStatus(m.id, 'archived')}>
+                  Arquivar
+                </Button>
               </div>
             </li>
           ))}

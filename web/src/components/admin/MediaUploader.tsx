@@ -81,7 +81,7 @@ export function MediaUploader({
         value={value ?? ''}
         onChange={(e) => onChange(e.target.value)}
         placeholder="… ou cole uma URL"
-        className="mt-2 w-full border border-mist/60 bg-paper px-3 py-2 text-sm outline-none focus:border-brass"
+        className="admin-input mt-2 text-sm"
       />
       {err && <p className="mt-1 text-xs text-error">{err}</p>}
     </div>

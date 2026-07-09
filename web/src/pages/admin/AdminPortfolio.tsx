@@ -46,9 +46,9 @@ export function AdminPortfolio() {
       )}
 
       {items.length > 0 && (
-        <ul className="mt-6 divide-y divide-mist/40 border border-mist/40">
+        <ul className="mt-6 card-line divide-y divide-mist/20 overflow-hidden">
           {items.map((p) => (
-            <li key={p.id} className="flex items-center justify-between gap-4 p-4">
+            <li key={p.id} className="admin-row">
               <div className="min-w-0">
                 <p className="truncate font-medium text-ink">{p.title}</p>
                 <p className="text-xs text-smoke">
@@ -58,16 +58,14 @@ export function AdminPortfolio() {
               <div className="flex shrink-0 items-center gap-3">
                 <span
                   className={
-                    'px-2 py-1 text-xs ' +
-                    (p.is_published
-                      ? 'border border-success/50 text-success'
-                      : 'border border-mist/60 text-smoke')
+                    'badge ' +
+                    (p.is_published ? 'border-success/30 text-success' : 'border-mist/40 text-smoke')
                   }
                 >
                   {p.is_published ? 'Publicado' : 'Rascunho'}
                 </span>
                 {p.is_featured && (
-                  <span className="px-2 py-1 text-xs border border-brass/50 text-brass">Destaque</span>
+                  <span className="badge border-brass/30 text-brass">Destaque</span>
                 )}
                 <Link to={`/admin/portfolio/${p.id}`} className="text-sm text-brass link-underline">
                   Editar

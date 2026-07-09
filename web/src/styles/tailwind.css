@@ -193,10 +193,47 @@
   }
 }
 
+/* === Admin === */
+
+/* Card-base para o admin — faltava esta definição! */
+.card-line {
+  @apply border border-mist/30 rounded-lg;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
 /* Admin select options — dropdown nativo (Chrome/Edge) */
 .bg-cream select option {
   color: #0A0B0D;
   background: #F5F2ED;
+}
+
+/* Admin filter tabs */
+.admin-tab {
+  @apply border border-mist/30 px-3 py-1.5 text-sm transition-colors;
+}
+.admin-tab-active {
+  @apply border-brass bg-brass text-charcoal font-medium;
+}
+.admin-tab:not(.admin-tab-active) {
+  @apply text-smoke hover:border-mist/60 hover:text-ink;
+}
+
+/* Admin form input padrão */
+.admin-input {
+  @apply w-full rounded-lg border border-mist/30 bg-paper text-ink px-4 py-2.5 outline-none;
+  @apply transition-all duration-200;
+  @apply focus:border-brass focus:ring-2 focus:ring-brass/20;
+}
+
+/* Admin table row */
+.admin-row {
+  @apply flex items-center justify-between gap-4 p-4 transition-colors hover:bg-brass/[0.04];
+}
+
+/* Botão outline pequeno (p/ links tipo "Responder" no admin) */
+.btn-outline-sm {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg border border-brass/40 px-3 py-1.5 text-sm text-brass;
+  @apply transition-all duration-200 hover:bg-brass hover:text-charcoal hover:border-brass;
 }
 
 /* Reduced motion */

@@ -95,7 +95,7 @@ export function AdminTestimonials() {
             rows={3}
             value={draft.quote}
             onChange={(e) => setDraft({ ...draft, quote: e.target.value })}
-            className="w-full border border-mist/60 bg-paper text-ink px-4 py-3 outline-none focus:border-brass"
+            className="admin-input"
           />
         </div>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -186,7 +186,7 @@ function In({
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full border border-mist/60 bg-paper text-ink px-4 py-3 outline-none focus:border-brass"
+        className="admin-input"
       />
     </div>
   )
