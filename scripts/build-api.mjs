@@ -3,13 +3,15 @@
 
 import * as esbuild from 'esbuild'
 
+// Pacotes externos (resolvidos de node_modules em runtime).
+// @projeto-sete/shared NÃO está aqui porque é workspace — o esbuild precisa
+// inlineá-lo no bundle, senão o Node runtime não consegue resolvê-lo.
 const external = [
   'fastify',
   '@fastify/cors',
   '@fastify/helmet',
   '@fastify/rate-limit',
   '@supabase/supabase-js',
-  '@projeto-sete/shared',
   'zod',
   'fastify-plugin',
 ]
