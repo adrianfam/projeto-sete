@@ -279,7 +279,9 @@
   │  Usado por: BlogPreview.tsx (homepage) e BlogList.tsx (/blog)           │
   │                                                                          │
   │  Funcionalidades:                                                        │
-  │  - Imagem com parallax suave ao scroll (useParallax hook)               │
+  │  - Imagem com parallax suave ao scroll (useParallax hook               │
+  │    com observer compartilhado)                                          │
+  │  - LQIP blur-up: skeleton shimmer → fade-in com blur (onLoad/onError) │
   │  - Fallback para BLOG_IMAGES (Unsplash) quando não há cover_image_url  │
   │  - Badge de tempo de leitura (pill estilizado)                         │
   │  - Gradient overlay na imagem ao hover                                 │
@@ -303,8 +305,34 @@
   │  Uso: const { ref, offsetY } = useParallax(0.05)                       │
   │       <div ref={ref} style={{ transform: translateY(${offsetY}px) }} />│
   │                                                                          │
-  │  Performance: Cada instância cria 1 Observer + 1 scroll listener.       │
-  │  Para 20+ cards, considere compartilhar um único Observer.             │
+  │  ARQUITETURA: Um ÚNICO IntersectionObserver e scroll listener são      │
+  │  compartilhados entre TODAS as instâncias do hook (padrão Set<Entry>    │
+  │  em nível de módulo). Evita N observers + N listeners.                 │
+  │  - Observer com { threshold: 0 } para mínimas chamadas                 │
+  │  - scroll listener com rAF throttling (ticking flag)                   │
+  │  - Scroll listener removido automaticamente quando nenhum elemento      │
+  │    está visível                                                        │
+  │  - Cleanup: entries.delete + observer.unobserve no unmount             │
+  │                                                                          │
+  │  Performance: Adequado para 20+ cards na página /blog.                 │
+  │                                                                          │
+  └──────────────────────────────────────────────────────────────────────────┘
+
+  ┌─ LQIP (Low Quality Image Placeholder) ─────────────────────────────────┐
+  │                                                                          │
+  │  Implementado no BlogCard.tsx para todas as imagens dos cards.          │
+  │                                                                          │
+  │  Como funciona:                                                         │
+  │  1. Enquanto a imagem não carrega, um div com classe 'skeleton'        │
+  │     (shimmer animado) cobre a área da imagem                           │
+  │  2. A imagem começa com opacity-0 blur-sm                              │
+  │  3. Ao carregar (onLoad), a classe muda para opacity-100 blur-0        │
+  │     com transição CSS de 700ms                                         │
+  │  4. Em caso de erro (onError), o placeholder é removido para não       │
+  │     ficar travado para sempre                                          │
+  │                                                                          │
+  │  Estado: imgLoaded (useState) controlado por onLoad/onError            │
+  │  (useCallback com deps vazias para referência estável)                 │
   │                                                                          │
   └──────────────────────────────────────────────────────────────────────────┘
 
@@ -539,5 +567,5 @@
 
 ================================================================================
   FIM DA DOCUMENTAÇÃO
-  Última atualização: Julho 2026
+  Última atualização: Julho 2026 (v2 — parallax otimizado + LQIP)
 ================================================================================
