@@ -6,6 +6,8 @@ node_modules/
 # build
 dist/
 api/dist/
+api/_src/*.js
+api/_src/*.js.map
 build/
 out/
 .cache/

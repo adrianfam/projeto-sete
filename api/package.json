@@ -6,7 +6,7 @@
   "main": "dist/src/index.js",
   "scripts": {
     "dev": "tsx watch src/standalone.ts",
-    "build": "tsc -p tsconfig.json",
+    "build": "node scripts/build-api.mjs",
     "start": "node dist/src/standalone.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "echo 'lint pendente (ESLint)'"
