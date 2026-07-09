@@ -24,12 +24,16 @@ export function Navbar() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
+  // Fecha menu ao navegar
   useEffect(() => {
     setOpen(false)
-    // Bloqueia scroll quando menu mobile aberto
+  }, [location.pathname])
+
+  // Trava/libera scroll conforme estado do menu mobile
+  useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
-  }, [location.pathname, open])
+  }, [open])
 
   return (
     <>
