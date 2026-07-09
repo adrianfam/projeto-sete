@@ -40,6 +40,7 @@ desktop.ini
 
 # vercel
 .ver/
+api/api/
 
 # test
 coverage/
