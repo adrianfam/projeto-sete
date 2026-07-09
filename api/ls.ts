@@ -56,10 +56,13 @@ export default async function handler(req: any, res: any) {
     }
   }
 
+  let cwdFiles: string[] = []
+  try { cwdFiles = fs.readdirSync(process.cwd()) } catch {}
+
   res.status(200).json({
     cwd: process.cwd(),
     files,
     checks,
-    cwdFiles: fs.readdirSync(process.cwd()),
+    cwdFiles,
   })
 }
