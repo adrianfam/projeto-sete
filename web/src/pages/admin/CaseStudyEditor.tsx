@@ -230,7 +230,7 @@ export function CaseStudyEditor() {
                 type="button"
                 onClick={() => {
                   const current = watch('gallery') ?? []
-                  setValue('gallery', [...current, { url: '', alt: '' }])
+                  setValue('gallery', [...current, { type: 'image', url: '', alt: '' }])
                 }}
                 className="text-sm text-brass link-underline"
               >

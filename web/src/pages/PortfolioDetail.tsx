@@ -1,4 +1,4 @@
-import { useParams, Link } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { motion, useReducedMotion } from 'framer-motion'
 import { Seo } from '@/components/seo/Seo'
 import { Container } from '@/components/ui/Container'

@@ -19,7 +19,6 @@ const PortfolioDetail = lazy(() => import('@/pages/PortfolioDetail').then((m) =>
 const AdminLogin = lazy(() => import('@/pages/admin/AdminLogin').then((m) => ({ default: m.AdminLogin })))
 const AdminLayout = lazy(() => import('@/pages/admin/AdminLayout').then((m) => ({ default: m.AdminLayout })))
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard').then((m) => ({ default: m.AdminDashboard })))
-const AdminPlaceholder = lazy(() => import('@/pages/admin/AdminPlaceholder').then((m) => ({ default: m.AdminPlaceholder })))
 const AdminBlog = lazy(() => import('@/pages/admin/AdminBlog').then((m) => ({ default: m.AdminBlog })))
 const BlogEditor = lazy(() => import('@/pages/admin/BlogEditor').then((m) => ({ default: m.BlogEditor })))
 const AdminComments = lazy(() => import('@/pages/admin/AdminComments').then((m) => ({ default: m.AdminComments })))
@@ -32,10 +31,6 @@ const AdminCases = lazy(() => import('@/pages/admin/AdminCases').then((m) => ({ 
 const CaseStudyEditor = lazy(() => import('@/pages/admin/CaseStudyEditor').then((m) => ({ default: m.CaseStudyEditor })))
 
 const suspense = (el: React.ReactNode) => <Suspense fallback={<LoadingState />}>{el}</Suspense>
-
-const adminSection = (title: string) => (
-  <Protected>{suspense(<AdminPlaceholder title={title} />)}</Protected>
-)
 
 export const router = createBrowserRouter([
   {

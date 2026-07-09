@@ -1,7 +1,6 @@
 import { Seo } from '@/components/seo/Seo'
 import { Container } from '@/components/ui/Container'
 import { Section } from '@/components/ui/Section'
-import { SectionHeading } from '@/components/ui/SectionHeading'
 import { ScrollReveal } from '@/components/ui/ScrollReveal'
 import { Button } from '@/components/ui/Button'
 import { useApi } from '@/hooks/useApi'
