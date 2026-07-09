@@ -1,9 +1,9 @@
 // Adaptador Vercel Serverless.
-// O frontend (Vite/Vercel na raiz) reescreve /api/* para esta função.
+// O frontend (Vite) chama /api/* que é roteado automaticamente para esta função.
 // Usamos o framework handler nativo do Fastify para um proxy transparente.
 
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { buildServer } from '../src/server'
+import { buildServer } from './src/server'
 
 let appPromise: ReturnType<typeof buildServer> | null = null
 
