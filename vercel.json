@@ -7,7 +7,7 @@
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "functions": {
-    "api/[[...route]].ts": {
+    "api/[...route].ts": {
       "memory": 512,
       "maxDuration": 20
     }
