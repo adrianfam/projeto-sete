@@ -3,7 +3,7 @@
 // Usamos o framework handler nativo do Fastify para um proxy transparente.
 
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { buildServer } from './_src/server'
+import { buildServer } from '../api-src/server'
 
 let appPromise: ReturnType<typeof buildServer> | null = null
 
