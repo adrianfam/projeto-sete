@@ -5,6 +5,7 @@ node_modules/
 
 # build
 dist/
+api/dist/
 build/
 out/
 .cache/
