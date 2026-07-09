@@ -1,13 +1,21 @@
-// Teste mínimo: função sem dependências externas
+// Teste de importação: importa de api-src/server
+import { buildServer } from '../api-src/server'
+
 export default async function handler(req: any, res: any) {
-  res.status(200).json({
-    ok: true,
-    message: 'Função Serverless funcionando!',
-    node: process.version,
-    env: {
-      node_env: process.env.NODE_ENV ?? '(não definido)',
-      supabase_url: process.env.SUPABASE_URL ? 'definido' : '(não definido)',
-      app_url: process.env.APP_URL ?? '(não definido)',
-    },
-  })
+  try {
+    const app = await buildServer()
+    await app.ready()
+    res.status(200).json({
+      ok: true,
+      message: 'Fastify inicializado com sucesso!',
+      routes: app.printRoutes(),
+    })
+  } catch (err: any) {
+    res.status(500).json({
+      ok: false,
+      message: 'Erro ao inicializar Fastify',
+      error: err?.message ?? String(err),
+      stack: err?.stack?.split?.('\n') ?? [],
+    })
+  }
 }
