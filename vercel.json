@@ -9,8 +9,7 @@
   "functions": {
     "api/[[...route]].ts": {
       "memory": 512,
-      "maxDuration": 20,
-      "includeFiles": "api/_src/server.js"
+      "maxDuration": 20
     }
   },
   "headers": [
