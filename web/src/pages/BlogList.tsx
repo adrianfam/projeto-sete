@@ -3,20 +3,12 @@ import { Seo } from '@/components/seo/Seo'
 import { Container } from '@/components/ui/Container'
 import { LoadingState } from '@/components/ui/LoadingState'
 import { useApi } from '@/hooks/useApi'
-import { Link } from 'react-router-dom'
-import { formatDate } from '@/lib/utils'
+import { BlogCard } from '@/features/blog/BlogCard'
+import type { BlogCardItem } from '@/features/blog/BlogCard'
 
-interface BlogItem {
-  id: string
-  title: string
-  slug: string
-  excerpt: string | null
-  cover_image_url: string | null
-  cover_alt: string | null
-  reading_minutes: number | null
+interface BlogItem extends BlogCardItem {
   tags: string[] | null
   author: string | null
-  published_at: string | null
 }
 type ApiResponse = { items: BlogItem[] } | BlogItem[]
 
@@ -71,33 +63,9 @@ export function BlogList() {
         )}
 
         {items.length > 0 && (
-          <div className="mt-12 grid gap-8 sm:grid-cols-2">
-            {items.map((p) => (
-              <Link key={p.id} to={`/blog/${p.slug}`} className="group flex flex-col">
-                <div className="aspect-[16/9] overflow-hidden border border-mist/40 bg-graphite">
-                  {p.cover_image_url && (
-                    <img
-                      src={p.cover_image_url}
-                      alt={p.cover_alt ?? p.title}
-                      loading="lazy"
-                      decoding="async"
-                      className="h-full w-full object-cover transition-transform duration-700 ease-refined group-hover:scale-[1.03]"
-                    />
-                  )}
-                </div>
-                <div className="mt-4">
-                  <p className="text-xs uppercase tracking-eyebrow text-brass">
-                    {p.reading_minutes ? `${p.reading_minutes} min` : 'Artigo'}
-                  </p>
-                  <h2 className="mt-2 font-serif text-2xl text-ink group-hover:text-brass">
-                    {p.title}
-                  </h2>
-                  {p.excerpt && <p className="mt-2 text-sm text-smoke line-clamp-3">{p.excerpt}</p>}
-                  <p className="mt-3 text-xs text-smoke">
-                    {p.author} · {formatDate(p.published_at)}
-                  </p>
-                </div>
-              </Link>
+          <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {items.map((p, i) => (
+              <BlogCard key={p.id} post={p} index={i} aspect="16/9" />
             ))}
           </div>
         )}
