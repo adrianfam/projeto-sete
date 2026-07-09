@@ -1,29 +1,26 @@
-// Teste: Fastify + plugins, sem routes/Supabase/shared
+// Teste: testa cada plugin individualmente para achar o culpado
 import Fastify from 'fastify'
-import corsPlugin from './_src/plugins/cors'
-import helmetPlugin from './_src/plugins/helmet'
-import rateLimitPlugin from './_src/plugins/rateLimit'
-import errorPlugin from './_src/plugins/errorHandler'
 
-async function buildApp() {
-  const app = Fastify({ trustProxy: true })
-  await app.register(corsPlugin)
-  await app.register(helmetPlugin)
-  await app.register(rateLimitPlugin)
-  await app.register(errorPlugin)
-  app.get('/api/ping', async () => ({ pong: true, plugins: true }))
-  return app
-}
-
-let appPromise: ReturnType<typeof buildApp> | null = null
-
-async function getApp() {
-  if (!appPromise) appPromise = buildApp()
-  return appPromise
+async function testPlugin(name: string, loader: () => Promise<any>) {
+  try {
+    const mod = await loader()
+    const app = Fastify()
+    await app.register(mod.default || mod)
+    await app.ready()
+    return { name, ok: true }
+  } catch (e: any) {
+    return { name, ok: false, error: e?.message ?? String(e) }
+  }
 }
 
 export default async function handler(req: any, res: any) {
-  const app = await getApp()
-  await app.ready()
-  app.server.emit('request', req, res)
+  const results = await Promise.all([
+    testPlugin('cors', () => import('./_src/plugins/cors')),
+    testPlugin('helmet', () => import('./_src/plugins/helmet')),
+    testPlugin('rate-limit', () => import('./_src/plugins/rateLimit')),
+    testPlugin('errorHandler', () => import('./_src/plugins/errorHandler')),
+  ])
+
+  const allOk = results.every(r => r.ok)
+  res.status(allOk ? 200 : 500).json({ ok: allOk, results })
 }
