@@ -57,16 +57,16 @@ export function AdminInstagram() {
 
       <form onSubmit={add} className="mt-6 card-line bg-cream p-6 space-y-4">
         <label className="block text-xs uppercase tracking-eyebrow text-smoke">Legenda</label>
-        <input name="caption" className="w-full border border-mist/60 bg-paper px-4 py-3 outline-none focus:border-brass" />
-        <input name="image_url" placeholder="URL da imagem" required className="w-full border border-mist/60 bg-paper px-4 py-3 outline-none focus:border-brass" />
-        <input name="post_url" placeholder="Link do post no Instagram (opcional)" className="w-full border border-mist/60 bg-paper px-4 py-3 outline-none focus:border-brass" />
+        <input name="caption" className="w-full border border-mist/60 bg-paper text-ink px-4 py-3 outline-none focus:border-brass" />
+        <input name="image_url" placeholder="URL da imagem" required className="w-full border border-mist/60 bg-paper text-ink px-4 py-3 outline-none focus:border-brass" />
+        <input name="post_url" placeholder="Link do post no Instagram (opcional)" className="w-full border border-mist/60 bg-paper text-ink px-4 py-3 outline-none focus:border-brass" />
         <div className="flex gap-4">
-          <select name="aspect_ratio" className="border border-mist/60 bg-paper px-4 py-3 outline-none focus:border-brass">
+          <select name="aspect_ratio" className="border border-mist/60 bg-paper text-ink px-4 py-3 outline-none focus:border-brass">
             {RATIOS.map((r) => (
               <option key={r} value={r}>{r}</option>
             ))}
           </select>
-          <input name="posted_at" type="date" className="border border-mist/60 bg-paper px-4 py-3 outline-none focus:border-brass" />
+          <input name="posted_at" type="date" className="border border-mist/60 bg-paper text-ink px-4 py-3 outline-none focus:border-brass" />
           <Button type="submit" variant="primary">Adicionar</Button>
         </div>
       </form>

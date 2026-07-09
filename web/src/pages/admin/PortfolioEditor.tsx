@@ -95,14 +95,14 @@ export function PortfolioEditor() {
               onBlur={(e) => {
                 if (!watch('slug')) setValue('slug', slugify(e.target.value))
               }}
-              className="w-full border border-mist/60 bg-paper px-4 py-3 outline-none focus:border-brass"
+              className="w-full border border-mist/60 bg-paper text-ink px-4 py-3 outline-none focus:border-brass"
             />
           </Field>
           <Field label="Slug" error={errors.slug?.message}>
-            <input {...register('slug')} className="w-full border border-mist/60 bg-paper px-4 py-3 outline-none focus:border-brass" />
+            <input {...register('slug')} className="w-full border border-mist/60 bg-paper text-ink px-4 py-3 outline-none focus:border-brass" />
           </Field>
           <Field label="Resumo" error={errors.summary?.message}>
-            <textarea {...register('summary')} rows={3} className="w-full border border-mist/60 bg-paper px-4 py-3 outline-none focus:border-brass" />
+            <textarea {...register('summary')} rows={3} className="w-full border border-mist/60 bg-paper text-ink px-4 py-3 outline-none focus:border-brass" />
           </Field>
           <Field label="Descrição (Markdown)">
             <textarea {...register('description')} rows={10} className="w-full border border-mist/60 bg-paper px-4 py-3 font-mono text-sm outline-none focus:border-brass" />
@@ -110,21 +110,21 @@ export function PortfolioEditor() {
 
           <div className="grid gap-5 sm:grid-cols-3">
             <Field label="Tipo de projeto">
-              <select {...register('projectType')} className="w-full border border-mist/60 bg-paper px-4 py-3 outline-none focus:border-brass">
+              <select {...register('projectType')} className="w-full border border-mist/60 bg-paper text-ink px-4 py-3 outline-none focus:border-brass">
                 {PROJECT_TYPES.map((t) => (
                   <option key={t} value={t}>{cap(t)}</option>
                 ))}
               </select>
             </Field>
             <Field label="Local">
-              <input {...register('location')} className="w-full border border-mist/60 bg-paper px-4 py-3 outline-none focus:border-brass" />
+              <input {...register('location')} className="w-full border border-mist/60 bg-paper text-ink px-4 py-3 outline-none focus:border-brass" />
             </Field>
             <Field label="Ano">
-              <input type="number" {...register('year', { setValueAs: (v) => (v === '' ? null : Number(v)) })} className="w-full border border-mist/60 bg-paper px-4 py-3 outline-none focus:border-brass" />
+              <input type="number" {...register('year', { setValueAs: (v) => (v === '' ? null : Number(v)) })} className="w-full border border-mist/60 bg-paper text-ink px-4 py-3 outline-none focus:border-brass" />
             </Field>
           </div>
           <Field label="Área (m²)">
-            <input type="number" step="0.01" {...register('areaM2', { setValueAs: (v) => (v === '' ? null : Number(v)) })} className="w-full border border-mist/60 bg-paper px-4 py-3 outline-none focus:border-brass" />
+            <input type="number" step="0.01" {...register('areaM2', { setValueAs: (v) => (v === '' ? null : Number(v)) })} className="w-full border border-mist/60 bg-paper text-ink px-4 py-3 outline-none focus:border-brass" />
           </Field>
         </div>
 

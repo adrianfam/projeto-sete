@@ -193,6 +193,12 @@
   }
 }
 
+/* Admin select options — dropdown nativo (Chrome/Edge) */
+.bg-cream select option {
+  color: #0A0B0D;
+  background: #F5F2ED;
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *,

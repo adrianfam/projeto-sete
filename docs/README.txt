@@ -520,6 +520,22 @@
   │                                                                          │
   └──────────────────────────────────────────────────────────────────────────┘
 
+  ┌─ PROBLEMA: Inputs/selects do admin com texto invisível ───────────────┐
+  │                                                                          │
+  │  Sintoma: No painel admin (/admin/*), o texto de inputs, textareas e    │
+  │  selects não aparece — só fica visível ao passar o mouse.              │
+  │                                                                          │
+  │  Causa: O body global tem `text-paper` (claro). Os form elements do     │
+  │  admin usam `bg-paper` (claro) mas herdam `text-paper`, criando texto  │
+  │  claro sobre fundo claro. O dropdown nativo dos `<select>` também      │
+  │  herda cores escuras do tema do sistema.                               │
+  │                                                                          │
+  │  Solução: Adicionar `text-ink` em todos os `<input>`, `<textarea>` e    │
+  │  `<select>` do admin. Para os dropdowns nativos, CSS rule:             │
+  │    .bg-cream select option { color: #0A0B0D; background: #F5F2ED; }    │
+  │                                                                          │
+  └──────────────────────────────────────────────────────────────────────────┘
+
   ┌─ PROBLEMA: CORB warning no console do navegador ───────────────────────┐
   │                                                                          │
   │  Descrição: "Cross-Origin Read Blocking (CORB)"                         │

@@ -90,7 +90,7 @@ export function BlogEditor() {
           <Field label="Título" error={errors.title?.message}>
             <input
               {...register('title')}
-              className="w-full border border-mist/60 bg-paper px-4 py-3 outline-none focus:border-brass"
+              className="w-full border border-mist/60 bg-paper text-ink px-4 py-3 outline-none focus:border-brass"
               onBlur={(e) => {
                 const v = watch('slug')
                 if (!v) setValue('slug', slugify(e.target.value))
@@ -100,21 +100,21 @@ export function BlogEditor() {
           <Field label="Slug (URL)" error={errors.slug?.message}>
             <input
               {...register('slug')}
-              className="w-full border border-mist/60 bg-paper px-4 py-3 outline-none focus:border-brass"
+              className="w-full border border-mist/60 bg-paper text-ink px-4 py-3 outline-none focus:border-brass"
             />
           </Field>
           <Field label="Resumo" error={errors.excerpt?.message}>
             <textarea
               {...register('excerpt')}
               rows={3}
-              className="w-full border border-mist/60 bg-paper px-4 py-3 outline-none focus:border-brass"
+              className="w-full border border-mist/60 bg-paper text-ink px-4 py-3 outline-none focus:border-brass"
             />
           </Field>
           <Field label="Conteúdo (Markdown)" error={errors.body?.message}>
             <textarea
               {...register('body')}
               rows={18}
-              className="w-full border border-mist/60 bg-paper px-4 py-3 font-mono text-sm outline-none focus:border-brass"
+              className="w-full border border-mist/60 bg-paper text-ink px-4 py-3 font-mono text-sm outline-none focus:border-brass"
             />
           </Field>
         </div>
@@ -138,14 +138,14 @@ export function BlogEditor() {
                   .filter(Boolean)
                 setValue('tags', arr)
               }}
-              className="w-full border border-mist/60 bg-paper px-4 py-3 outline-none focus:border-brass"
+              className="w-full border border-mist/60 bg-paper text-ink px-4 py-3 outline-none focus:border-brass"
             />
           </Field>
 
           <Field label="Autor">
             <input
               {...register('author')}
-              className="w-full border border-mist/60 bg-paper px-4 py-3 outline-none focus:border-brass"
+              className="w-full border border-mist/60 bg-paper text-ink px-4 py-3 outline-none focus:border-brass"
             />
           </Field>
 
@@ -157,7 +157,7 @@ export function BlogEditor() {
           <Field label="Alt da capa">
             <input
               {...register('coverAlt')}
-              className="w-full border border-mist/60 bg-paper px-4 py-3 outline-none focus:border-brass"
+              className="w-full border border-mist/60 bg-paper text-ink px-4 py-3 outline-none focus:border-brass"
             />
           </Field>
 
