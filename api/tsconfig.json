@@ -5,7 +5,7 @@
     "moduleResolution": "Bundler",
     "lib": ["ES2022"],
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": "./_src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -15,5 +15,5 @@
     "sourceMap": true,
     "baseUrl": "."
   },
-  "include": ["src/**/*.ts"]
+  "include": ["_src/**/*.ts"]
 }
