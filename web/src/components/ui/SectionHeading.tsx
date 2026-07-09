@@ -1,34 +1,38 @@
 import { cn } from '@/lib/utils'
 
-/** Cabeçalho de seção: eyebrow + título serif + régua de brass. */
 export function SectionHeading({
   eyebrow,
   title,
   intro,
   align = 'left',
-  tone = 'light',
+  tone = 'dark',
   className,
 }: {
   eyebrow?: string
   title: React.ReactNode
   intro?: React.ReactNode
   align?: 'left' | 'center'
-  tone?: 'light' | 'dark'
+  tone?: 'dark' | 'light'
   className?: string
 }) {
   const isDark = tone === 'dark'
   return (
     <div
       className={cn(
-        'max-w-2xl',
+        'max-w-3xl',
         align === 'center' && 'mx-auto text-center',
         className,
       )}
     >
-      {eyebrow && <p className="eyebrow">{eyebrow}</p>}
+      {eyebrow && (
+        <span className="eyebrow inline-flex items-center gap-2">
+          <span className="h-px w-6 bg-brass/60" aria-hidden="true" />
+          {eyebrow}
+        </span>
+      )}
       <h2
         className={cn(
-          'mt-3 font-serif text-4xl leading-tight sm:text-5xl',
+          'mt-4 font-editorial text-display-sm sm:text-display-md leading-[1.05] text-balance',
           isDark ? 'text-paper' : 'text-ink',
         )}
       >
@@ -38,7 +42,8 @@ export function SectionHeading({
       {intro && (
         <p
           className={cn(
-            'mt-6 text-lg leading-relaxed',
+            'mt-6 text-lg leading-relaxed max-w-2xl',
+            align === 'center' && 'mx-auto',
             isDark ? 'text-mist' : 'text-smoke',
           )}
         >

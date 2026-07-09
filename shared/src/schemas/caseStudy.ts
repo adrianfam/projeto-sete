@@ -18,6 +18,7 @@ export const caseStudyInputSchema = z.object({
   gallery: z.array(mediaItemSchema).default([]),
   coverImageUrl: z.string().url().optional().nullable(),
   isPublished: z.boolean().default(false),
+  featured: z.boolean().default(false),
   publishedAt: z.string().datetime().optional().nullable(),
 })
 export type CaseStudyInput = z.infer<typeof caseStudyInputSchema>

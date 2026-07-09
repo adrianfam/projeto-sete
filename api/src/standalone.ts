@@ -1,3 +1,5 @@
+// Carrega .env (dotenvx auto-loader busca na árvore de diretórios)
+import 'dotenv/config'
 import { buildServer } from './server'
 
 const PORT = Number(process.env.PORT ?? 3001)

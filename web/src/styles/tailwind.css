@@ -4,41 +4,55 @@
 
 @layer base {
   :root {
-    color-scheme: light;
+    color-scheme: dark;
   }
 
   html {
     scroll-behavior: smooth;
+    accent-color: #B8863C;
   }
 
   body {
-    @apply bg-paper text-ink font-sans antialiased;
+    @apply bg-ink text-paper antialiased;
+    font-family: Inter, system-ui, -apple-system, Segoe UI, sans-serif;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  h1,
-  h2,
-  h3,
-  h4 {
-    @apply font-serif;
+  h1, h2, h3, h4 {
+    font-family: "DM Serif Display", Georgia, Cambria, "Times New Roman", serif;
   }
 
-  /* Foco visível acessível com o acento brass */
   *:focus-visible {
-    @apply outline outline-2 outline-brass outline-offset-2;
+    @apply outline outline-2 outline-offset-2 outline-brass;
   }
 
   ::selection {
-    background: rgba(176, 131, 66, 0.25);
-    color: #0e0f11;
+    background: rgba(184, 134, 60, 0.3);
+    color: #F5F2ED;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-ink;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-graphite-light rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-smoke;
   }
 }
 
 @layer components {
   .eyebrow {
-    @apply text-xs uppercase font-sans font-semibold text-brass;
-    letter-spacing: 0.2em;
+    @apply text-xs uppercase font-semibold text-brass;
+    font-family: Inter, system-ui, -apple-system, Segoe UI, sans-serif;
+    letter-spacing: 0.15em;
   }
 
   .section-rule {
@@ -46,24 +60,63 @@
   }
 
   .container-px {
-    @apply mx-auto max-w-7xl px-6;
+    @apply mx-auto max-w-7xl px-5 sm:px-8 lg:px-12;
   }
 
-  /** Linha divisória mate de cartão (sem sombra) */
-  .card-line {
-    @apply border border-mist/40;
+  .glass-card {
+    @apply border border-white/5 bg-white/[0.03];
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
   }
 
-  /** Link com sublinhado animado em brass */
+  .glass-card-hover {
+    @apply transition-all duration-500;
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .glass-card-hover:hover {
+    @apply border-brass/20;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(184, 134, 60, 0.1);
+  }
+
+  .text-gradient-brass {
+    @apply text-transparent;
+    background: linear-gradient(135deg, #D4A96A, #B8863C, #8A6630);
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+
   .link-underline {
     @apply relative inline-block;
   }
   .link-underline::after {
     content: '';
-    @apply absolute -bottom-0.5 left-0 h-px w-0 bg-brass transition-all duration-500 ease-refined;
+    @apply absolute -bottom-0.5 left-0 h-px w-0 bg-brass;
+    transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
   }
   .link-underline:hover::after {
     @apply w-full;
+  }
+
+  .skeleton {
+    @apply relative overflow-hidden rounded;
+    background: linear-gradient(90deg, #1C1E22 25%, #282B30 50%, #1C1E22 75%);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite linear;
+  }
+
+  .img-overlay {
+    @apply absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/20 to-transparent;
+  }
+
+  .img-overlay-full {
+    @apply absolute inset-0 bg-gradient-to-br from-ink/60 via-transparent to-ink/40;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-3 py-1 text-xs font-medium uppercase tracking-wider;
+    @apply border border-brass/30 text-brass;
+    background-color: rgba(184, 134, 60, 0.05);
   }
 }
 
@@ -74,7 +127,6 @@
   .text-pretty {
     text-wrap: pretty;
   }
-  /* Esconde inlet de scrollbar mas mantém scroll */
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
@@ -84,50 +136,58 @@
   }
 }
 
-/* Tipografia editorial do corpo do artigo (markdown renderizado) */
+/* Tipografia editorial para blog */
 @layer components {
   .prose-blog {
-    @apply leading-relaxed;
+    line-height: 1.625;
   }
   .prose-blog > * + * {
-    @apply mt-5;
+    @apply mt-6;
   }
   .prose-blog h2 {
-    @apply font-serif text-2xl text-ink mt-10;
+    @apply text-3xl text-paper mt-12;
+    font-family: "DM Serif Display", Georgia, Cambria, "Times New Roman", serif;
   }
   .prose-blog h3 {
-    @apply font-serif text-xl text-ink mt-8;
+    @apply text-2xl text-paper mt-10;
+    font-family: "DM Serif Display", Georgia, Cambria, "Times New Roman", serif;
   }
   .prose-blog p {
-    @apply text-smoke;
+    @apply text-mist;
   }
   .prose-blog a {
-    @apply text-brass link-underline;
+    @apply text-brass;
+  }
+  .prose-blog a:hover {
+    text-decoration: underline;
   }
   .prose-blog strong {
-    @apply text-ink font-semibold;
+    @apply text-paper font-semibold;
   }
   .prose-blog ul {
-    @apply list-disc space-y-2 pl-6 text-smoke;
+    @apply list-disc space-y-2 pl-6 text-mist;
   }
   .prose-blog ol {
-    @apply list-decimal space-y-2 pl-6 text-smoke;
+    @apply list-decimal space-y-2 pl-6 text-mist;
   }
   .prose-blog blockquote {
-    @apply border-l-2 border-brass pl-4 italic text-smoke;
+    @apply border-l-2 border-brass pl-5 italic text-mist;
   }
   .prose-blog code {
-    @apply bg-cream px-1.5 py-0.5 text-sm text-clay;
+    @apply bg-graphite px-1.5 py-0.5 text-sm text-brass-soft;
   }
   .prose-blog pre {
-    @apply overflow-x-auto bg-charcoal p-4 text-sm text-paper;
+    @apply overflow-x-auto bg-charcoal p-5 text-sm text-paper border border-white/5;
   }
   .prose-blog pre code {
     @apply bg-transparent p-0 text-paper;
   }
+  .prose-blog img {
+    @apply rounded-lg;
+  }
 }
 
-/* Respeita usuários que pedem menos movimento */
+/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

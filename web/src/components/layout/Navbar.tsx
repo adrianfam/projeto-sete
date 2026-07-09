@@ -1,105 +1,154 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
-import { navItems } from '@projeto-sete/shared'
+import { navItems, brand } from '@projeto-sete/shared'
 import { Container } from '@/components/ui/Container'
 import { Button } from '@/components/ui/Button'
 import { Logo } from './Logo'
 import { cn } from '@/lib/utils'
-import { brand } from '@projeto-sete/shared'
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [open, setOpen] = useState(false)
+  const [scrollProgress, setScrollProgress] = useState(0)
   const location = useLocation()
   const isLanding = location.pathname === '/'
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24)
+    const onScroll = () => {
+      setScrolled(window.scrollY > 48)
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight
+      setScrollProgress(docHeight > 0 ? Math.min(window.scrollY / docHeight, 1) : 0)
+    }
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  useEffect(() => setOpen(false), [location.pathname])
-
-  const solid = scrolled || !isLanding
+  useEffect(() => {
+    setOpen(false)
+    // Bloqueia scroll quando menu mobile aberto
+    document.body.style.overflow = open ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [location.pathname, open])
 
   return (
-    <header
-      className={cn(
-        'fixed inset-x-0 top-0 z-50 transition-all duration-500 ease-refined',
-        solid ? 'bg-paper/95 shadow-card backdrop-blur' : 'bg-transparent',
-      )}
-    >
-      <Container className="flex h-20 items-center justify-between">
-        <Logo variant={solid ? 'solid' : 'light'} />
-
-        {/* Desktop */}
-        <nav className="hidden items-center gap-8 lg:flex" aria-label="Navegação principal">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.href}
-              to={item.href}
-              end={item.href === '/'}
-              className={({ isActive }) =>
-                cn(
-                  'link-underline text-sm font-medium',
-                  solid ? 'text-ink' : 'text-paper',
-                  isActive && 'text-brass',
-                )
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-
-        <div className="hidden lg:block">
-          <Button href={brand.contact.whatsappLink} target="_blank" rel="noopener" variant="primary" size="sm">
-            Solicitar projeto
-          </Button>
+    <>
+      <header
+        className={cn(
+          'fixed inset-x-0 top-0 z-50 transition-all duration-700 ease-refined',
+          scrolled
+            ? 'bg-ink/80 backdrop-blur-xl border-b border-white/[0.06] shadow-glass'
+            : 'bg-transparent',
+        )}
+      >
+        {/* Progress bar de scroll */}
+        <div className="absolute inset-x-0 bottom-0 h-[1px] bg-white/[0.06]">
+          <div
+            className="h-full bg-brass transition-all duration-150 ease-out"
+            style={{ width: `${scrollProgress * 100}%` }}
+          />
         </div>
 
-        {/* Mobile toggle */}
-        <button
-          className={cn('lg:hidden', solid ? 'text-ink' : 'text-paper')}
-          aria-label={open ? 'Fechar menu' : 'Abrir menu'}
-          aria-expanded={open}
-          onClick={() => setOpen((v) => !v)}
-        >
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            {open ? (
-              <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
-            ) : (
-              <>
-                <path d="M3 7h18" strokeLinecap="round" />
-                <path d="M3 12h18" strokeLinecap="round" />
-                <path d="M3 17h18" strokeLinecap="round" />
-              </>
-            )}
-          </svg>
-        </button>
-      </Container>
+        <Container className="flex h-20 items-center justify-between">
+          <Logo variant={scrolled || !isLanding ? 'solid' : 'light'} />
 
-      {/* Mobile menu */}
+          {/* Desktop nav */}
+          <nav className="hidden items-center gap-1 lg:flex" aria-label="Navegação principal">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.href}
+                to={item.href}
+                end={item.href === '/'}
+                className={({ isActive }) =>
+                  cn(
+                    'px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300',
+                    !scrolled && isLanding
+                      ? 'text-paper/80 hover:text-paper hover:bg-white/5'
+                      : 'text-mist hover:text-paper hover:bg-white/[0.04]',
+                    isActive && 'text-brass',
+                  )
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+            <div className="ml-4 pl-4 border-l border-white/10">
+              <Button
+                href={brand.contact.whatsappLink}
+                target="_blank"
+                rel="noopener"
+                variant="primary"
+                size="sm"
+              >
+                Solicitar orçamento
+              </Button>
+            </div>
+          </nav>
+
+          {/* Mobile toggle */}
+          <button
+            className={cn(
+              'lg:hidden relative z-50 h-10 w-10 flex items-center justify-center rounded-lg',
+              scrolled || !isLanding ? 'text-paper' : 'text-paper',
+            )}
+            aria-label={open ? 'Fechar menu' : 'Abrir menu'}
+            aria-expanded={open}
+            onClick={() => setOpen((v) => !v)}
+          >
+            <div className="relative w-6 h-5">
+              <span
+                className={cn(
+                  'absolute left-0 top-0 h-[2px] w-full bg-current transition-all duration-300',
+                  open && 'top-1/2 -translate-y-1/2 rotate-45',
+                )}
+              />
+              <span
+                className={cn(
+                  'absolute left-0 top-1/2 -translate-y-1/2 h-[2px] bg-current transition-all duration-300',
+                  open ? 'w-0' : 'w-full',
+                )}
+              />
+              <span
+                className={cn(
+                  'absolute left-0 bottom-0 h-[2px] w-full bg-current transition-all duration-300',
+                  open && 'bottom-1/2 translate-y-1/2 -rotate-45',
+                )}
+              />
+            </div>
+          </button>
+        </Container>
+      </header>
+
+      {/* Mobile menu overlay */}
       {open && (
-        <div className="lg:hidden bg-paper border-t border-mist/40">
-          <Container className="flex flex-col gap-1 py-4">
+        <div className="fixed inset-0 z-40 lg:hidden">
+          <div className="absolute inset-0 bg-ink/95 backdrop-blur-2xl" onClick={() => setOpen(false)} />
+          <nav className="relative z-10 flex flex-col items-center justify-center h-full gap-6 px-6" aria-label="Navegação mobile">
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 to={item.href}
-                className="py-3 text-ink border-b border-mist/20 last:border-0"
+                className="text-3xl font-editorial text-paper hover:text-brass transition-colors duration-300"
+                onClick={() => setOpen(false)}
               >
                 {item.label}
               </Link>
             ))}
-            <Button href={brand.contact.whatsappLink} target="_blank" rel="noopener" variant="whatsapp" className="mt-4">
-              WhatsApp
-            </Button>
-          </Container>
+            <div className="mt-8 pt-8 border-t border-white/10 w-full max-w-xs text-center">
+              <Button
+                href={brand.contact.whatsappLink}
+                target="_blank"
+                rel="noopener"
+                variant="primary"
+                size="lg"
+                className="w-full"
+              >
+                Solicitar orçamento
+              </Button>
+            </div>
+          </nav>
         </div>
       )}
-    </header>
+    </>
   )
 }

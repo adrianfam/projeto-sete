@@ -7,7 +7,7 @@ export function RootLayout() {
   return (
     <>
       <Navbar />
-      <main>
+      <main className="min-h-screen bg-ink">
         <Outlet />
       </main>
       <Footer />

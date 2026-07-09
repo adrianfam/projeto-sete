@@ -6,8 +6,9 @@ import { ScrollReveal } from '@/components/ui/ScrollReveal'
 import { Button } from '@/components/ui/Button'
 import { LoadingState } from '@/components/ui/LoadingState'
 import { useApi } from '@/hooks/useApi'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { cn } from '@/lib/utils'
+import { PORTFOLIO_CARD_IMAGES } from '@/lib/images'
 
 type ProjectType = ('residencial' | 'comercial' | 'corporativo' | 'especial') | 'todos'
 
@@ -22,7 +23,7 @@ interface PortfolioItemLite {
   year: number | null
 }
 
-const TELEMETRY_FILTERS: { label: string; value: ProjectType }[] = [
+const FILTERS: { label: string; value: ProjectType }[] = [
   { label: 'Todos', value: 'todos' },
   { label: 'Residencial', value: 'residencial' },
   { label: 'Comercial', value: 'comercial' },
@@ -30,17 +31,31 @@ const TELEMETRY_FILTERS: { label: string; value: ProjectType }[] = [
   { label: 'Especial', value: 'especial' },
 ]
 
+const isValidType = (v: string | null): v is ProjectType =>
+  v !== null && (v === 'todos' || ['residencial', 'comercial', 'corporativo', 'especial'].includes(v))
+
 export function Portfolio() {
-  const [filter, setFilter] = useState<ProjectType>('todos')
-  const path =
-    filter === 'todos'
-      ? '/portfolio?limit=12'
-      : `/portfolio?projectType=${filter}&limit=12`
+  const [searchParams, setSearchParams] = useSearchParams()
+  const initial = isValidType(searchParams.get('projectType'))
+    ? (searchParams.get('projectType') as ProjectType)
+    : 'todos'
+  const [filter, setFilter] = useState<ProjectType>(initial)
+
+  const handleFilter = (value: ProjectType) => {
+    setFilter(value)
+    if (value === 'todos') {
+      setSearchParams({})
+    } else {
+      setSearchParams({ projectType: value })
+    }
+  }
+
+  const path = filter === 'todos' ? '/portfolio?limit=9' : `/portfolio?projectType=${filter}&limit=9`
   const { data, status } = useApi<{ items: PortfolioItemLite[] }>(path)
   const items = data?.items ?? []
 
   return (
-    <Section id="portfolio" tone="cream">
+    <Section id="portfolio" tone="dark">
       <Container>
         <SectionHeading
           eyebrow="Portfólio"
@@ -49,19 +64,18 @@ export function Portfolio() {
           align="center"
         />
 
-        {/* Filtros */}
         <div className="mt-10 flex flex-wrap justify-center gap-2" role="tablist">
-          {TELEMETRY_FILTERS.map((f) => (
+          {FILTERS.map((f) => (
             <button
               key={f.value}
-              onClick={() => setFilter(f.value)}
+              onClick={() => handleFilter(f.value)}
               role="tab"
               aria-selected={filter === f.value}
               className={cn(
-                'border px-4 py-2 text-sm font-medium transition-colors',
+                'px-5 py-2.5 text-sm font-medium rounded-full transition-all duration-300',
                 filter === f.value
-                  ? 'border-brass bg-brass text-charcoal'
-                  : 'border-mist/60 text-smoke hover:border-brass hover:text-ink',
+                  ? 'bg-brass text-ink shadow-glow'
+                  : 'glass-card text-mist hover:text-brass hover:border-brass/30',
               )}
             >
               {f.label}
@@ -70,57 +84,49 @@ export function Portfolio() {
         </div>
 
         {status === 'loading' && <LoadingState className="py-20" />}
-        {status === 'error' && (
-          <p className="mt-16 text-center text-smoke">
-            Não foi possível carregar o portfólio agora. Tente novamente em instantes.
-          </p>
-        )}
 
         {status !== 'loading' && items.length === 0 && (
-          <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div
-                key={i}
-                className="aspect-[4/3] w-full border border-mist/40 bg-paper/50"
-              />
-            ))}
-            <div className="col-span-full mt-4 text-center text-sm text-smoke">
-              Itens serão exibidos aqui assim que cadastrados no CMS.
-            </div>
+          <div className="mt-16 text-center text-mist/50">
+            <p>Itens serao exibidos aqui assim que cadastrados no CMS.</p>
           </div>
         )}
 
-        {/* Grid */}
         {items.length > 0 && (
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((item, i) => (
-              <ScrollReveal key={item.id} delay={i * 0.05} className="group">
-                <Link to={`/portfolio/${item.slug}`} className="block">
-                  <div className="relative aspect-[4/3] overflow-hidden border border-mist/40">
+              <ScrollReveal key={item.id} delay={i * 0.05}>
+                <Link to={`/portfolio/${item.slug}`} className="group block">
+                  <div className="relative aspect-[4/3] overflow-hidden rounded-xl glass-card">
                     {item.cover_image_url ? (
+                      <>
+                        <img
+                          src={item.cover_image_url}
+                          alt={item.title}
+                          loading="lazy"
+                          decoding="async"
+                          className="h-full w-full object-cover transition-all duration-700 ease-refined group-hover:scale-[1.05]"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/10 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
+                        <div className="absolute inset-0 ring-1 ring-inset ring-white/10 group-hover:ring-brass/30 rounded-xl transition-all duration-500" />
+                        <div className="absolute bottom-0 left-0 right-0 p-6 translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
+                          <span className="text-[10px] uppercase tracking-wider text-brass-soft">
+                            {item.project_type ?? 'Projeto'}
+                          </span>
+                          <h3 className="mt-1 font-editorial text-xl text-paper">{item.title}</h3>
+                          <p className="mt-1 text-xs text-mist/70">
+                            {[item.location, item.year].filter(Boolean).join(' · ')}
+                          </p>
+                        </div>
+                      </>
+                    ) : (
                       <img
-                        src={item.cover_image_url}
+                        src={PORTFOLIO_CARD_IMAGES[i % PORTFOLIO_CARD_IMAGES.length]}
                         alt={item.title}
                         loading="lazy"
                         decoding="async"
-                        className="h-full w-full object-cover transition-transform duration-700 ease-refined group-hover:scale-[1.03]"
+                        className="h-full w-full object-cover transition-all duration-700 ease-refined group-hover:scale-[1.05]"
                       />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-graphite text-brass">
-                        <span className="font-serif text-3xl">PS</span>
-                      </div>
                     )}
-                    <div className="absolute inset-0 ring-1 ring-inset ring-brass opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-                  </div>
-                  <div className="mt-4">
-                    <p className="text-xs uppercase tracking-eyebrow text-brass">
-                      {item.project_type ?? 'Projeto'}
-                    </p>
-                    <h3 className="mt-1 font-serif text-xl text-ink">{item.title}</h3>
-                    <p className="mt-1 text-sm text-smoke line-clamp-2">{item.summary}</p>
-                    <p className="mt-2 text-xs text-smoke">
-                      {[item.location, item.year].filter(Boolean).join(' · ')}
-                    </p>
                   </div>
                 </Link>
               </ScrollReveal>
@@ -129,8 +135,11 @@ export function Portfolio() {
         )}
 
         <div className="mt-14 text-center">
-          <Button to="/portfolio" variant="ghost">
-            Ver portfólio completo
+          <Button to="/portfolio" variant="outline">
+            Ver portfolio completo
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
           </Button>
         </div>
       </Container>

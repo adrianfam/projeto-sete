@@ -5,8 +5,8 @@ export const navItems = [
   { label: 'Início', href: '/' },
   { label: 'Sobre', href: '/sobre' },
   { label: 'Portfólio', href: '/portfolio' },
-  { label: 'Estudos de Caso', href: '/#cases' },
-  { label: 'Depoimentos', href: '/#depoimentos' },
+  { label: 'Estudos de Caso', href: '/cases' },
+  { label: 'Depoimentos', href: '/testimonials' },
   { label: 'Blog', href: '/blog' },
   { label: 'Contato', href: '/contato' },
 ] as const

@@ -97,22 +97,25 @@ export function Comments({
           className="mt-4 space-y-4"
         >
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Nome" error={errors.authorName?.message}>
+            <Field label="Nome" htmlFor="authorName" error={errors.authorName?.message}>
               <input
+                id="authorName"
                 {...register('authorName')}
                 className="w-full border border-mist/60 bg-paper px-4 py-3 outline-none focus:border-brass"
               />
             </Field>
-            <Field label="E-mail (não exibido)" error={errors.authorEmail?.message}>
+            <Field label="E-mail (não exibido)" htmlFor="authorEmail" error={errors.authorEmail?.message}>
               <input
+                id="authorEmail"
                 type="email"
                 {...register('authorEmail')}
                 className="w-full border border-mist/60 bg-paper px-4 py-3 outline-none focus:border-brass"
               />
             </Field>
           </div>
-          <Field label="Comentário" error={errors.body?.message}>
+          <Field label="Comentário" htmlFor="commentBody" error={errors.body?.message}>
             <textarea
+              id="commentBody"
               {...register('body')}
               rows={4}
               className="w-full border border-mist/60 bg-paper px-4 py-3 outline-none focus:border-brass"
@@ -189,10 +192,10 @@ function buildTree(flat: Comment[]): CommentNode_[] {
   return roots
 }
 
-function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+function Field({ label, htmlFor, error, children }: { label: string; htmlFor?: string; error?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="mb-2 block text-xs uppercase tracking-eyebrow text-smoke">{label}</label>
+      <label htmlFor={htmlFor} className="mb-2 block text-xs uppercase tracking-eyebrow text-smoke">{label}</label>
       {children}
       {error && <p className="mt-1 text-xs text-error">{error}</p>}
     </div>

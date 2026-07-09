@@ -1,20 +1,25 @@
 import { cn } from '@/lib/utils'
 
-/** Seção de página com ritmo vertical consistente e ID opcional p/ âncora. */
 export function Section({
   id,
   className,
   children,
-  tone = 'light',
+  tone = 'dark',
 }: {
   id?: string
   className?: string
   children: React.ReactNode
-  tone?: 'light' | 'dark' | 'cream'
+  tone?: 'dark' | 'light' | 'cream' | 'charcoal'
 }) {
-  const bg = tone === 'dark' ? 'bg-charcoal text-paper' : tone === 'cream' ? 'bg-cream' : 'bg-paper'
+  const bg = {
+    dark: 'bg-ink text-paper',
+    charcoal: 'bg-charcoal text-paper',
+    cream: 'bg-[#0D0F12] text-paper border-t border-white/5',
+    light: 'bg-paper text-ink',
+  }[tone]
+
   return (
-    <section id={id} className={cn('scroll-mt-24 py-24 md:py-32', bg, className)}>
+    <section id={id} className={cn('scroll-mt-20 py-24 md:py-32', bg, className)}>
       {children}
     </section>
   )

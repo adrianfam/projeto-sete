@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { useApi } from '@/hooks/useApi'
 import { Link } from 'react-router-dom'
 import { formatDate } from '@/lib/utils'
+import { BLOG_IMAGES } from '@/lib/images'
 
 interface BlogPreviewItem {
   id: string
@@ -24,7 +25,7 @@ export function BlogPreview() {
   const items = normalize(data)
 
   return (
-    <Section id="blog" tone="cream">
+    <Section id="blog" tone="charcoal">
       <Container>
         <SectionHeading
           eyebrow="Blog"
@@ -33,46 +34,78 @@ export function BlogPreview() {
           align="center"
         />
 
-        {status === 'loading' && <p className="mt-12 text-center text-smoke">Carregando…</p>}
+        {status === 'loading' && (
+          <div className="mt-12 grid gap-6 md:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="glass-card rounded-xl overflow-hidden">
+                <div className="aspect-[3/2] skeleton" />
+                <div className="p-6 space-y-3">
+                  <div className="h-3 w-1/4 skeleton rounded" />
+                  <div className="h-5 w-3/4 skeleton rounded" />
+                  <div className="h-4 w-full skeleton rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {status === 'error' && (
-          <p className="mt-12 text-center text-smoke">Em breve novos artigos por aqui.</p>
+          <p className="mt-12 text-center text-mist/50">Em breve novos artigos por aqui.</p>
         )}
 
         {items.length === 0 && status === 'success' && (
-          <p className="mt-12 text-center text-smoke">Nenhum artigo publicado ainda.</p>
+          <p className="mt-12 text-center text-mist/50">Nenhum artigo publicado ainda.</p>
         )}
 
         {items.length > 0 && (
-          <div className="mt-12 grid gap-6 md:grid-cols-3">
+          <div className="mt-14 grid gap-6 md:grid-cols-3">
             {items.map((p, i) => (
               <ScrollReveal key={p.id} delay={i * 0.08}>
-                <Link to={`/blog/${p.slug}`} className="group flex h-full flex-col">
-                  <div className="aspect-[3/2] overflow-hidden border border-mist/40 bg-graphite">
-                    {p.cover_image_url && (
+                <Link to={`/blog/${p.slug}`} className="group flex h-full flex-col glass-card-hover rounded-xl overflow-hidden">
+                  <div className="aspect-[3/2] overflow-hidden bg-graphite relative">
+                    {p.cover_image_url ? (
                       <img
                         src={p.cover_image_url}
                         alt={p.title}
                         loading="lazy"
                         decoding="async"
-                        className="h-full w-full object-cover transition-transform duration-700 ease-refined group-hover:scale-[1.03]"
+                        className="h-full w-full object-cover transition-transform duration-700 ease-refined group-hover:scale-[1.05]"
+                      />
+                    ) : (
+                      <img
+                        src={BLOG_IMAGES[i % BLOG_IMAGES.length]}
+                        alt={p.title}
+                        loading="lazy"
+                        decoding="async"
+                        className="h-full w-full object-cover transition-transform duration-700 ease-refined group-hover:scale-[1.05]"
                       />
                     )}
+                    <div className="absolute inset-0 ring-1 ring-inset ring-white/10 group-hover:ring-brass/30 transition-all duration-500" />
                   </div>
-                  <p className="mt-4 text-xs uppercase tracking-eyebrow text-brass">
-                    {p.reading_minutes ? `${p.reading_minutes} min de leitura` : 'Artigo'}
-                  </p>
-                  <h3 className="mt-1 font-serif text-xl text-ink">{p.title}</h3>
-                  {p.excerpt && <p className="mt-2 text-sm text-smoke line-clamp-3">{p.excerpt}</p>}
-                  <p className="mt-3 text-xs text-smoke">{formatDate(p.published_at)}</p>
+                  <div className="flex flex-col flex-1 p-6">
+                    <span className="text-[10px] uppercase tracking-wider text-brass">
+                      {p.reading_minutes ? `${p.reading_minutes} min de leitura` : 'Artigo'}
+                    </span>
+                    <h3 className="mt-2 font-editorial text-xl text-paper group-hover:text-brass transition-colors duration-300">
+                      {p.title}
+                    </h3>
+                    {p.excerpt && (
+                      <p className="mt-2 text-sm text-mist/70 line-clamp-3 flex-1">{p.excerpt}</p>
+                    )}
+                    <p className="mt-4 text-xs text-mist/40">{formatDate(p.published_at)}</p>
+                  </div>
                 </Link>
               </ScrollReveal>
             ))}
           </div>
         )}
 
-        <div className="mt-12 text-center">
+        <div className="mt-14 text-center">
           <Button to="/blog" variant="ghost">
             Ler todos os artigos
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
           </Button>
         </div>
       </Container>
