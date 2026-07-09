@@ -4,14 +4,9 @@
   "outputDirectory": "web/dist",
   "framework": "vite",
   "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    { "source": "/api/:path*", "destination": "/api/handler?__path=:path*" },
+    { "source": "/((?!api).*)", "destination": "/index.html" }
   ],
-  "functions": {
-    "api/[...route].ts": {
-      "memory": 512,
-      "maxDuration": 20
-    }
-  },
   "headers": [
     {
       "source": "/(.*)",
