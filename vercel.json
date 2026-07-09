@@ -10,7 +10,7 @@
     "api/[[...route]].ts": {
       "memory": 512,
       "maxDuration": 20,
-      "includeFiles": "api/_src/server.js"
+      "includeFiles": ["api/_src/server.js", "shared/dist/**"]
     }
   },
   "headers": [

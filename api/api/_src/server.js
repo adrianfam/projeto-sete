@@ -81,192 +81,8 @@ var healthRoutes = async (app) => {
   }));
 };
 
-// ../shared/dist/schemas/portfolio.js
-import { z } from "zod";
-var portfolioCategorySchema = z.object({
-  id: z.string().uuid().optional(),
-  slug: z.string().min(2).max(60).regex(/^[a-z0-9-]+$/, "slug deve conter apenas letras min\xFAsculas, n\xFAmeros e h\xEDfens"),
-  name: z.string().min(2).max(60),
-  position: z.number().int().default(0)
-});
-var projectTypeEnum = z.enum(["residencial", "comercial", "corporativo", "especial"]);
-var mediaItemSchema = z.object({
-  type: z.enum(["image", "video"]),
-  url: z.string().url(),
-  thumb: z.string().url().optional(),
-  alt: z.string().default(""),
-  width: z.number().int().positive().optional(),
-  height: z.number().int().positive().optional()
-});
-var portfolioItemInputSchema = z.object({
-  title: z.string().min(2).max(120),
-  slug: z.string().min(2).max(120).regex(/^[a-z0-9-]+$/),
-  summary: z.string().max(300).optional().nullable(),
-  description: z.string().max(2e4).optional().nullable(),
-  categoryId: z.string().uuid().optional().nullable(),
-  projectType: projectTypeEnum.optional().nullable(),
-  location: z.string().max(120).optional().nullable(),
-  year: z.number().int().min(1990).max(2100).optional().nullable(),
-  areaM2: z.number().positive().optional().nullable(),
-  media: z.array(mediaItemSchema).default([]),
-  coverImageUrl: z.string().url().optional().nullable(),
-  isFeatured: z.boolean().default(false),
-  isPublished: z.boolean().default(false),
-  publishedAt: z.string().datetime().optional().nullable(),
-  position: z.number().int().default(0)
-});
-var portfolioQuerySchema = z.object({
-  category: z.string().optional(),
-  projectType: projectTypeEnum.optional(),
-  featured: z.union([z.string(), z.boolean()]).optional().transform((v) => v === true || v === "true"),
-  limit: z.coerce.number().int().min(1).max(50).default(20),
-  offset: z.coerce.number().int().min(0).default(0)
-});
-
-// ../shared/dist/schemas/caseStudy.js
-import { z as z2 } from "zod";
-var caseResultSchema = z2.object({
-  metric: z2.string().max(40),
-  label: z2.string().max(120)
-});
-var caseStudyInputSchema = z2.object({
-  title: z2.string().min(2).max(120),
-  slug: z2.string().min(2).max(120).regex(/^[a-z0-9-]+$/),
-  client: z2.string().max(120).optional().nullable(),
-  category: z2.string().max(80).optional().nullable(),
-  challenge: z2.string().max(2e4).optional().nullable(),
-  process: z2.string().max(2e4).optional().nullable(),
-  results: z2.array(caseResultSchema).default([]),
-  gallery: z2.array(mediaItemSchema).default([]),
-  coverImageUrl: z2.string().url().optional().nullable(),
-  isPublished: z2.boolean().default(false),
-  featured: z2.boolean().default(false),
-  publishedAt: z2.string().datetime().optional().nullable()
-});
-
-// ../shared/dist/schemas/testimonial.js
-import { z as z3 } from "zod";
-var testimonialInputSchema = z3.object({
-  author: z3.string().min(2).max(120),
-  role: z3.string().max(120).optional().nullable(),
-  company: z3.string().max(120).optional().nullable(),
-  quote: z3.string().min(10).max(1e3),
-  rating: z3.number().int().min(1).max(5).default(5),
-  avatarUrl: z3.string().url().optional().nullable(),
-  isPublished: z3.boolean().default(false),
-  position: z3.number().int().default(0)
-});
-
-// ../shared/dist/schemas/blog.js
-import { z as z4 } from "zod";
-var blogPostInputSchema = z4.object({
-  title: z4.string().min(2).max(160),
-  slug: z4.string().min(2).max(160).regex(/^[a-z0-9-]+$/),
-  excerpt: z4.string().max(400).optional().nullable(),
-  body: z4.string().min(1).max(5e4),
-  coverImageUrl: z4.string().url().optional().nullable(),
-  coverAlt: z4.string().max(200).optional().nullable(),
-  readingMinutes: z4.number().int().min(1).max(300).optional(),
-  tags: z4.array(z4.string().max(40)).max(12).default([]),
-  author: z4.string().max(120).default("Felipe Amorim"),
-  authorAvatarUrl: z4.string().url().optional().nullable(),
-  isPublished: z4.boolean().default(false),
-  publishedAt: z4.string().datetime().optional().nullable(),
-  seo: z4.object({
-    title: z4.string().max(160).optional().nullable(),
-    description: z4.string().max(300).optional().nullable(),
-    ogImage: z4.string().url().optional().nullable()
-  }).default({})
-});
-var blogQuerySchema = z4.object({
-  page: z4.coerce.number().int().min(1).default(1),
-  tag: z4.string().optional(),
-  q: z4.string().optional(),
-  limit: z4.coerce.number().int().min(1).max(20).default(9)
-});
-
-// ../shared/dist/schemas/comment.js
-import { z as z5 } from "zod";
-var commentInputSchema = z5.object({
-  authorName: z5.string().trim().min(2).max(80),
-  authorEmail: z5.string().trim().email().max(160),
-  body: z5.string().trim().min(2).max(2e3),
-  parentId: z5.string().uuid().optional().nullable(),
-  // Honeypot: campo que bots preenchem — deve chegar vazio.
-  website: z5.string().max(0).optional().or(z5.literal("")).optional()
-});
-var commentStatusSchema = z5.enum(["pending", "approved", "rejected", "spam"]);
-var commentModerationSchema = z5.object({
-  status: commentStatusSchema
-});
-
-// ../shared/dist/schemas/contact.js
-import { z as z6 } from "zod";
-var contactInputSchema = z6.object({
-  name: z6.string().trim().min(2).max(120),
-  email: z6.string().trim().email().max(160),
-  phone: z6.string().trim().max(20).optional().nullable().transform((v) => v === "" ? null : v),
-  subject: z6.string().trim().max(160).optional().nullable().transform((v) => v === "" ? null : v),
-  message: z6.string().trim().min(10).max(4e3),
-  // Honeypot
-  website: z6.string().max(0).optional().or(z6.literal("")).optional()
-});
-
-// ../shared/dist/constants/brand.js
-var brand = {
-  name: "Projeto Sete",
-  legalName: "Projeto Sete M\xF3veis Planejados e Marcenaria",
-  tagline: "M\xF3veis Planejados e Marcenaria de Alto Padr\xE3o",
-  description: "Especialistas em m\xF3veis sob medida de alto padr\xE3o em Fortaleza e regi\xE3o. Transformamos sonhos em realidade com excel\xEAncia e sofistica\xE7\xE3o, combinando funcionalidade e eleg\xE2ncia para espa\xE7os residenciais e comerciais.",
-  foundedYear: 2009,
-  yearsExperience: 15,
-  owner: {
-    name: "Felipe Amorim",
-    role: "Propriet\xE1rio & CEO"
-  },
-  contact: {
-    phone: "(85) 99816-2777",
-    phoneRaw: "+5585998162777",
-    whatsappIntl: "5585998162777",
-    whatsappLink: "https://wa.me/5585998162777",
-    email: "projetosete.gerencia@gmail.com"
-  },
-  address: {
-    street: "Rua Capit\xE3o Cl\xF3vis Maia, 759",
-    district: "Alto da Balan\xE7a",
-    city: "Fortaleza",
-    state: "CE",
-    zip: "60851-000",
-    country: "BR",
-    fullAddress: "Rua Capit\xE3o Cl\xF3vis Maia, 759 - Alto da Balan\xE7a, Fortaleza - CE, 60851-000",
-    // Coordenadas aproximadas de Alto da Balança, Fortaleza (refinar com Maps)
-    geo: { lat: -3.7895, lng: -38.4879 },
-    mapsEmbedQuery: "Rua Capit\xE3o Cl\xF3vis Maia, 759, Alto da Balan\xE7a, Fortaleza, CE"
-  },
-  hours: [
-    { days: "Segunda a Sexta", open: "08:00", close: "17:00" },
-    { days: "S\xE1bado e Domingo", open: null, close: null, label: "Fechado" }
-  ],
-  social: {
-    instagram: {
-      handle: "@_projetosete",
-      username: "_projetosete",
-      url: "https://www.instagram.com/_projetosete/"
-    }
-  },
-  credentials: [
-    "Mais de 15 anos de experi\xEAncia no mercado (desde 2009)",
-    "Especialistas em m\xF3veis sob medida de alto padr\xE3o",
-    "Atendimento personalizado para residencial e comercial",
-    "Uso dos melhores materiais do mercado",
-    "Reconhecimento por inventividade e qualidade"
-  ],
-  references: ["CASACOR", "ForM\xF3bile"]
-};
-
-// ../shared/dist/constants/nav.js
-var footerYear = (/* @__PURE__ */ new Date()).getFullYear();
-var footerLegal = `\xA9 ${footerYear} ${brand.legalName}. Todos os direitos reservados.`;
+// _src/routes/portfolio.ts
+import { portfolioQuerySchema, portfolioItemInputSchema } from "@projeto-sete/shared";
 
 // _src/lib/auth.ts
 async function requireAdmin(req) {
@@ -376,6 +192,7 @@ var portfolioRoutes = async (app) => {
 };
 
 // _src/routes/caseStudies.ts
+import { caseStudyInputSchema } from "@projeto-sete/shared";
 var caseStudyRoutes = async (app) => {
   app.get("/admin/cases", { preHandler: adminGuard }, async (_req, reply) => {
     const sb = getSupabaseAdmin();
@@ -439,6 +256,7 @@ var caseStudyRoutes = async (app) => {
 };
 
 // _src/routes/testimonials.ts
+import { testimonialInputSchema } from "@projeto-sete/shared";
 var testimonialRoutes = async (app) => {
   app.get("/testimonials", async (_req, reply) => {
     const sb = getSupabaseAdmin();
@@ -504,6 +322,7 @@ var instagramRoutes = async (app) => {
 };
 
 // _src/routes/blog.ts
+import { blogQuerySchema, blogPostInputSchema } from "@projeto-sete/shared";
 var blogRoutes = async (app) => {
   app.get("/blog", async (req, reply) => {
     const q = blogQuerySchema.parse(req.query);
@@ -590,6 +409,7 @@ function estimateReadingMinutes(body) {
 }
 
 // _src/routes/comments.ts
+import { commentInputSchema, commentModerationSchema } from "@projeto-sete/shared";
 var commentRoutes = async (app) => {
   app.get("/comments/:postId", async (req, reply) => {
     const { postId } = req.params;
@@ -655,6 +475,9 @@ var commentRoutes = async (app) => {
   });
 };
 
+// _src/routes/contact.ts
+import { contactInputSchema } from "@projeto-sete/shared";
+
 // _src/lib/mailer.ts
 async function sendMail(input) {
   const from = process.env.MAIL_FROM ?? "contato@projetosete.com.br";
@@ -709,6 +532,7 @@ async function sendMail(input) {
 }
 
 // _src/routes/contact.ts
+import { brand } from "@projeto-sete/shared";
 var contactRoutes = async (app) => {
   app.post(
     "/contact",
