@@ -6,16 +6,15 @@
   "workspaces": [
     "web",
     "api",
-    "api-src",
     "shared"
   ],
   "scripts": {
     "dev": "concurrently -n web,api -c cyan,magenta \"npm:dev:web\" \"npm:dev:api\"",
     "dev:web": "npm -w web run dev",
     "dev:api": "npm -w api run dev",
-    "build": "npm run build:shared && npm run build:web",
+    "build": "npm run build:shared && npm run build:api && npm run build:web",
     "build:web": "npm -w web run build",
-    "build:api": "echo 'api src compilado na raiz'",
+    "build:api": "npm -w api run build",
     "build:shared": "npm -w shared run build",
     "lint": "npm run lint --workspaces --if-present",
     "lint:fix": "npm run lint:fix --workspaces --if-present",
