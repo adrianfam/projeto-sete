@@ -9,6 +9,8 @@ interface Metrics {
   pendingComments: number
   portfolioItems: number
   newMessages: number
+  activeEmployees: number
+  todayRecords: number
 }
 
 export function AdminDashboard() {
@@ -20,7 +22,7 @@ export function AdminDashboard() {
     if (status === 'unauth') navigate('/admin/login', { replace: true })
   }, [status, navigate])
 
-  const kpis: { label: string; value: number | string; to: string }[] = data
+  const contentKpis: { label: string; value: number | string; to: string }[] = data
     ? [
         { label: 'Posts publicados', value: data.publishedPosts, to: '/admin/blog' },
         { label: 'Comentários pendentes', value: data.pendingComments, to: '/admin/comments' },
@@ -34,30 +36,63 @@ export function AdminDashboard() {
         { label: 'Mensagens recebidas', value: '—', to: '/admin/contact' },
       ]
 
+  const pontoKpis: { label: string; value: number | string; to: string }[] = data
+    ? [
+        { label: 'Colaboradores ativos', value: data.activeEmployees, to: '/admin/employees' },
+        { label: 'Registros hoje', value: data.todayRecords, to: '/admin/time-records' },
+      ]
+    : [
+        { label: 'Colaboradores ativos', value: '—', to: '/admin/employees' },
+        { label: 'Registros hoje', value: '—', to: '/admin/time-records' },
+      ]
+
   return (
     <>
       <Seo title="Dashboard — Projeto Sete Admin" noindex path="/admin/dashboard" />
-      <h1 className="font-serif text-3xl">Dashboard</h1>
-      <p className="mt-2 text-smoke">
+      <h1 className="font-serif text-3xl text-paper">Dashboard</h1>
+      <p className="mt-2 text-mist">
         {status === 'loading'
           ? 'Carregando métricas…'
           : status === 'error'
             ? 'Não foi possível carregar as métricas.'
-            : 'Visão geral do conteúdo.'}
+            : 'Visão geral do conteúdo e ponto eletrônico.'}
       </p>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {kpis.map((kpi) => (
-          <Link
-            key={kpi.label}
-            to={kpi.to}
-            className="card-line rounded bg-paper p-6 transition-colors hover:border-brass"
-          >
-            <p className="eyebrow">{kpi.label}</p>
-            <p className="mt-3 font-serif text-4xl">{kpi.value}</p>
-          </Link>
-        ))}
+      {/* Métricas de Conteúdo */}
+      <div className="mt-8">
+        <h2 className="text-xs uppercase tracking-eyebrow text-mist mb-4"><span aria-hidden="true">📄</span> Conteúdo</h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {contentKpis.map((kpi) => (
+            <Link
+              key={kpi.label}
+              to={kpi.to}
+              className="card-line rounded bg-graphite p-6 transition-colors hover:border-brass"
+            >
+              <p className="eyebrow">{kpi.label}</p>
+              <p className="mt-3 font-serif text-4xl text-paper">{kpi.value}</p>
+            </Link>
+          ))}
+        </div>
       </div>
+
+      {/* Métricas de Ponto Eletrônico */}
+      {data && (
+        <div className="mt-8">
+          <h2 className="text-xs uppercase tracking-eyebrow text-mist mb-4"><span aria-hidden="true">🕐</span> Ponto Eletrônico</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {pontoKpis.map((kpi) => (
+              <Link
+                key={kpi.label}
+                to={kpi.to}
+                className="card-line rounded bg-graphite p-6 transition-colors hover:border-brass"
+              >
+                <p className="eyebrow">{kpi.label}</p>
+                <p className="mt-3 font-serif text-4xl text-paper">{kpi.value}</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </>
   )
 }

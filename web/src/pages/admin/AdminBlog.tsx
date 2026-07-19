@@ -33,16 +33,16 @@ export function AdminBlog() {
 
       {status === 'loading' && <LoadingState className="py-16" />}
       {status !== 'loading' && items.length === 0 && (
-        <p className="py-16 text-center text-smoke">Nenhum post. Crie o primeiro.</p>
+        <p className="py-16 text-center text-mist">Nenhum post. Crie o primeiro.</p>
       )}
 
       {items.length > 0 && (
-        <ul className="mt-6 card-line divide-y divide-mist/20 overflow-hidden">
+        <ul className="mt-6 card-line divide-y divide-graphite-light overflow-hidden">
           {items.map((p) => (
             <li key={p.id} className="admin-row">
               <div className="min-w-0">
-                <p className="truncate font-medium text-ink">{p.title}</p>
-                <p className="text-xs text-smoke">
+                <p className="truncate font-medium text-paper">{p.title}</p>
+                <p className="text-xs text-mist">
                   /blog/{p.slug} · {p.author} · {p.reading_minutes ?? '—'} min ·{' '}
                   {p.published_at ? formatDate(p.published_at) : 'rascunho'}
                 </p>
@@ -51,7 +51,7 @@ export function AdminBlog() {
                 <span
                   className={
                     'badge ' +
-                    (p.is_published ? 'border-success/30 text-success' : 'border-mist/40 text-smoke')
+                    (p.is_published ? 'border-success/50 text-success' : 'border-graphite-light text-mist')
                   }
                 >
                   {p.is_published ? 'Publicado' : 'Rascunho'}

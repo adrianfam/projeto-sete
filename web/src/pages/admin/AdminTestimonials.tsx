@@ -74,10 +74,10 @@ export function AdminTestimonials() {
   return (
     <>
       <Seo title="Depoimentos — Projeto Sete Admin" noindex />
-      <h1 className="font-serif text-3xl">Depoimentos</h1>
+      <h1 className="font-serif text-3xl text-paper">Depoimentos</h1>
 
       {/* Formulário inline */}
-      <div className="mt-6 card-line bg-cream p-6">
+      <div className="mt-6 card-line bg-graphite p-6">
         <div className="grid gap-4 sm:grid-cols-2">
           <In label="Autor" value={draft.author} onChange={(v) => setDraft({ ...draft, author: v })} />
           <In label="Cargo" value={draft.role ?? ''} onChange={(v) => setDraft({ ...draft, role: v })} />
@@ -90,7 +90,7 @@ export function AdminTestimonials() {
           />
         </div>
         <div className="mt-4">
-          <label className="mb-2 block text-xs uppercase tracking-eyebrow text-smoke">Depoimento</label>
+          <label className="mb-2 block text-xs uppercase tracking-eyebrow text-mist">Depoimento</label>
           <textarea
             rows={3}
             value={draft.quote}
@@ -104,10 +104,7 @@ export function AdminTestimonials() {
             value={draft.avatar_url}
             onChange={(v) => setDraft({ ...draft, avatar_url: v })}
           />
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={draft.is_published}
+          <label className="flex items-center gap-2 text-sm text-paper">            <input type="checkbox" checked={draft.is_published} className="accent-brass"
               onChange={(e) => setDraft({ ...draft, is_published: e.target.checked })}
             />
             Publicar
@@ -127,15 +124,15 @@ export function AdminTestimonials() {
 
       {status === 'loading' && <LoadingState className="py-16" />}
       {items.length > 0 && (
-        <ul className="mt-6 divide-y divide-mist/40 border border-mist/40">
+        <ul className="mt-6 card-line divide-y divide-graphite-light overflow-hidden">
           {items.map((t) => (
-            <li key={t.id} className="flex items-start justify-between gap-4 p-4">
+            <li key={t.id} className="admin-row">
               <div className="min-w-0">
-                <p className="font-medium text-ink">
-                  {t.author} <span className="text-xs text-smoke">{t.is_published ? '· publicado' : '· rascunho'}</span>
+                <p className="font-medium text-paper">
+                  {t.author} <span className="text-xs text-mist">{t.is_published ? '· publicado' : '· rascunho'}</span>
                 </p>
-                <p className="text-xs text-smoke">{[t.role, t.company].filter(Boolean).join(' · ')}</p>
-                <p className="mt-2 text-sm text-smoke line-clamp-2">“{t.quote}”</p>
+                <p className="text-xs text-mist">{[t.role, t.company].filter(Boolean).join(' · ')}</p>
+                <p className="mt-2 text-sm text-mist line-clamp-2">“{t.quote}”</p>
               </div>
               <div className="flex shrink-0 gap-3">
                 <button
@@ -181,7 +178,7 @@ function In({
 }) {
   return (
     <div>
-      <label className="mb-2 block text-xs uppercase tracking-eyebrow text-smoke">{label}</label>
+      <label className="mb-2 block text-xs uppercase tracking-eyebrow text-mist">{label}</label>
       <input
         type={type}
         value={value}

@@ -1,603 +1,834 @@
 ================================================================================
   PROJETO SETE — MÓVEIS PLANEJADOS E MARCENARIA DE ALTO PADRÃO
-  Documentação Completa para Manutenção e Upgrade
+  Documentação Técnica Completa
 ================================================================================
 
-   Site: https://projeto-sete.vercel.app
-   Repo: https://github.com/adrianfam/projeto-sete
-  Stack: Vite + React 18 + TypeScript | Fastify + Node | Supabase | Vercel
+  Site:     https://projeto-sete.vercel.app
+  Repo:     https://github.com/adrianfam/projeto-sete
+  Stack:    Vite + React 18 + TypeScript | Fastify + Node | Supabase | Vercel
+  Database: Supabase PostgreSQL (projeto: twrohdescsfvgrghukkb)
 
-
-================================================================================
-  1. VISÃO GERAL
-================================================================================
-
+  CONTEXTO:
   Site institucional premium + CMS administrativo para a Projeto Sete,
-  marceneira de alto padrão em Fortaleza/CE (desde 2009).
+  marcenaria de alto padrão em Fortaleza/CE (desde 2009), atendendo classes
+  A e B com referências em CASACOR e ForMóbile.
 
-  O projeto é um monorepo com 3 workspaces npm interligados:
+  O projeto entrega landing page cinematográfica + CMS interno para gerenciar
+  portfólio, estudos de caso, depoimentos, blog, Instagram e comentários.
 
+  Última atualização: Julho/2026 (v3 — admin visual overhaul + documentação)
+
+
+================================================================================
+  1. ARQUITETURA
+================================================================================
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │                           VERECL                                       │
+  │  ┌──────────────────────────────────────────────────────────────────┐  │
+  │  │  /api/*  →  Serverless Function (Fastify)                       │  │
+  │  │  /*       →  Static SPA (Vite build) + rewrites                 │  │
+  │  └──────────────────────────────────────────────────────────────────┘  │
+  │           │                                                │           │
+  │           ▼                                                ▼           │
+  │  ┌─────────────────┐                          ┌─────────────────┐     │
+  │  │   Supabase DB    │                          │   Supabase Auth  │     │
+  │  │   + Storage      │                          │   (JWT tokens)   │     │
+  │  └─────────────────┘                          └─────────────────┘     │
+  └────────────────────────────────────────────────────────────────────────┘
+
+  MONOREPO (npm workspaces):
     /web      → Frontend (Vite + React 18 + TailwindCSS)
-    /api      → Backend API (Fastify + esbuild bundle)
-    /shared   → Pacote compartilhado (schemas Zod, constantes, tipos)
+    /api      → Backend (Fastify + esbuild bundle)
+    /shared   → Pacote compartilhado (schemas Zod, constantes, tipos, utils)
 
-  Hospedagem: Vercel (frontend estático + Serverless Functions)
-  Database:   Supabase (PostgreSQL + Auth + Storage)
-  Email:      Resend (API)
+  FLUXO DE DADOS:
+    Frontend (useApi/useAdminApi hooks) → fetch("/api/...") → Fastify →
+    Supabase admin client (service-role key) → PostgreSQL
+
+  FLUXO DE AUTENTICAÇÃO:
+    Login → Supabase Auth (signInWithPassword) → JWT token →
+    Armazenado em memória (adminToken.ts) → Bearer header em chamadas admin →
+    Fastify verifica JWT com SUPABASE_JWT_SECRET → requireAdmin guard
+
+  FLUXO DE UPLOAD:
+    Admin clica "Enviar imagem" → POST /api/upload/sign (autenticado) →
+    Recebe signedUrl + publicUrl → PUT direto no Supabase Storage →
+    Salva publicUrl no formulário
 
 
 ================================================================================
-  2. REQUISITOS DE AMBIENTE
-================================================================================
-
-  - Node.js >= 20 (recomendado 22 LTS)
-  - npm >= 10
-  - Conta no Supabase (gratuita)
-  - Chave da API Resend (gratuita, 100 emails/dia)
-  - Google Maps Embed API key (opcional)
-
-
-================================================================================
-  3. ESTRUTURA DE ARQUIVOS
+  2. ESTRUTURA COMPLETA DE DIRETÓRIOS
 ================================================================================
 
   projeto-sete/
   │
-  ├── api/                                # Backend Fastify
-  │   ├── [[...route]].ts → handler.ts    # Entry point Vercel Serverless
-  │   ├── _src/                           # Código-fonte compilado via esbuild
-  │   │   ├── server.ts                   # Servidor Fastify (registro de rotas)
-  │   │   ├── standalone.ts               # Servidor standalone (desenvolvimento local)
-  │   │   ├── lib/                        # Utilitários: auth, mailer, supabase
-  │   │   ├── plugins/                    # Plugins Fastify: cors, helmet, rate-limit
-  │   │   └── routes/                     # Rotas da API
+  ├── api/                               # Backend Fastify
+  │   ├── handler.ts                     # Entry point Vercel (restaura __path)
+  │   ├── _src/
+  │   │   ├── server.ts                  # Registro de plugins + rotas
+  │   │   ├── standalone.ts              # Servidor local (tsx watch)
+  │   │   ├── auth.ts                    # requireAdmin / adminGuard
+  │   │   ├── lib/
+  │   │   │   ├── auth.ts                # Lógica de verificação JWT
+  │   │   │   ├── case.ts                # toSnake / toCamel
+  │   │   │   ├── mailer.ts              # Resend/SMTP
+  │   │   │   ├── supabaseAdmin.ts       # Admin client (service-role)
+  │   │   │   └── supabaseUser.ts        # Anon client (public)
+  │   │   ├── plugins/
+  │   │   │   ├── cors.ts
+  │   │   │   ├── errorHandler.ts
+  │   │   │   ├── helmet.ts
+  │   │   │   └── rateLimit.ts
+  │   │   └── routes/
   │   │       ├── health.ts
-  │   │       ├── blog.ts
-  │   │       ├── portfolio.ts
-  │   │       ├── contact.ts
-  │   │       ├── comments.ts
-  │   │       ├── testimonials.ts
+  │   │       ├── blog.ts                # Público + Admin CRUD
+  │   │       ├── portfolio.ts           # Público + Admin CRUD
   │   │       ├── caseStudies.ts
+  │   │       ├── testimonials.ts
   │   │       ├── instagram.ts
-  │   │       ├── upload.ts
+  │   │       ├── comments.ts            # Público + Admin moderação
+  │   │       ├── contact.ts
+  │   │       ├── upload.ts              # Signed URL generator
   │   │       ├── sitemap.ts
-  │   │       └── admin.ts
-  │   ├── .env                            # Variáveis de ambiente (NÃO COMMITAR)
+  │   │       └── admin.ts               # /auth/me + /admin/metrics + /admin/contact
   │   ├── package.json
-  │   └── tsconfig.json
+  │   ├── tsconfig.json
+  │   └── .env.example
   │
-  ├── web/                                # Frontend React
+  ├── web/                               # Frontend React
   │   ├── index.html
-  │   ├── src/
-  │   │   ├── main.tsx                    # Entry point
-  │   │   ├── App.tsx
-  │   │   ├── router.tsx                  # Rotas React Router
-  │   │   ├── styles/tailwind.css         # Estilos globais + componentes Tailwind (inclui classes do admin)
-  │   │   ├── components/                 # Componentes compartilhados
-  │   │   │   ├── layout/                 # Navbar, Footer, RootLayout, WhatsAppFloat
-  │   │   │   ├── ui/                     # Button, Container, Section, ScrollReveal, etc.
-  │   │   │   ├── media/                  # LazyMedia
-  │   │   │   └── seo/                    # SEO (meta tags, JSON-LD)
-  │   │   ├── features/                   # Seções da landing page
-  │   │   │   ├── hero/
-  │   │   │   ├── about/
-  │   │   │   ├── blog/                   # BlogPreview, BlogCard (COMPARTILHADO)
-  │   │   │   ├── caseStudies/
-  │   │   │   ├── contact/
-  │   │   │   ├── facility/
-  │   │   │   ├── instagram/
-  │   │   │   ├── portfolio/
-  │   │   │   └── testimonials/
-  │   │   ├── hooks/                      # Custom hooks (useApi, useParallax, etc.)
-  │   │   ├── lib/                        # Utilitários (apiClient, utils, supabaseClient)
-  │   │   ├── pages/                      # Páginas
-  │   │   │   ├── Landing.tsx
-  │   │   │   ├── BlogList.tsx
-  │   │   │   ├── BlogPostPage.tsx
-  │   │   │   ├── NotFound.tsx
-  │   │   │   └── admin/                  # Páginas do painel admin
-  │   │   ├── store/                      # Zustand stores (authStore, uiStore)
-  │   │   ├── providers/                  # Providers (Auth, Motion)
-  │   │   └── routes/                     # Rota protegida (Protected.tsx)
-  │   ├── tailwind.config.ts
-  │   ├── vite.config.ts
+  │   ├── vercel.json                    # SPA rewrites + API proxy (dev)
+  │   ├── vite.config.ts                 # Alias @/, @projeto-sete/shared
+  │   ├── tailwind.config.ts             # Paleta + fontes + keyframes
   │   ├── postcss.config.js
-  │   └── package.json
+  │   ├── public/
+  │   │   ├── manifest.webmanifest
+  │   │   └── robots.txt
+  │   └── src/
+  │       ├── main.tsx                    # Entry point
+  │       ├── App.tsx                     # Providers + AppRouter
+  │       ├── router.tsx                  # Rotas (lazy + Suspense)
+  │       ├── styles/tailwind.css         # Custom components + utilities
+  │       │
+  │       ├── components/
+  │       │   ├── layout/
+  │       │   │   ├── Navbar.tsx          # Nav fixa com scroll progress + menu mobile
+  │       │   │   ├── Footer.tsx          # Grid 5 colunas + contato + redes
+  │       │   │   ├── RootLayout.tsx      # Navbar + Outlet + Footer + WhatsApp
+  │       │   │   ├── Logo.tsx            # Logotipo (solid/light variant)
+  │       │   │   └── WhatsAppFloat.tsx   # Botão flutuante (canto inferior direito)
+  │       │   ├── ui/
+  │       │   │   ├── Button.tsx          # Ripple effect, as=Link/button/a
+  │       │   │   ├── Container.tsx       # Max-width wrapper com padding
+  │       │   │   ├── Section.tsx         # Seção com tom de fundo
+  │       │   │   ├── SectionHeading.tsx  # Eyebrow + título + intro
+  │       │   │   ├── ScrollReveal.tsx    # Framer Motion fade-up (whileInView)
+  │       │   │   ├── LoadingState.tsx    # Spinner + SkeletonCard + SkeletonLine
+  │       │   │   └── ParallaxImage.tsx   # Framer Motion parallax (useScroll)
+  │       │   ├── media/
+  │       │   │   └── LazyMedia.tsx       # Imagem com lazy + skeleton placeholder
+  │       │   ├── seo/
+  │       │   │   └── Seo.tsx             # Helmet + JSON-LD (LocalBusiness/Article)
+  │       │   ├── admin/
+  │       │   │   └── MediaUploader.tsx   # Upload de imagem + signAndUpload()
+  │       │   └── ui/ (componentes adicionais)
+  │       │       ├── Card.tsx
+  │       │       └── Badge.tsx
+  │       │
+  │       ├── features/                   # Seções da landing page
+  │       │   ├── hero/Hero.tsx           # Hero com parallax, métricas, CTA
+  │       │   ├── about/About.tsx         # Sobre + Bento grid (oficina, CEO, MVV)
+  │       │   ├── portfolio/Portfolio.tsx # Grid de projetos com filtro por tipo
+  │       │   ├── caseStudies/CaseStudies.tsx # 3 cards de destaque + fallback
+  │       │   ├── testimonials/Testimonials.tsx # Depoimentos com rating + avatar
+  │       │   ├── facility/Facility.tsx   # Timeline de processo + pilares
+  │       │   ├── instagram/InstagramGallery.tsx # Grid 6 fotos + fallback
+  │       │   ├── blog/
+  │       │   │   ├── BlogPreview.tsx     # Preview na home (3 cards)
+  │       │   │   ├── BlogCard.tsx        # Card com parallax + LQIP + skeleton
+  │       │   │   └── Comments.tsx        # Formulário + lista de comentários
+  │       │   └── contact/Contact.tsx     # Form + info + Google Maps embed
+  │       │
+  │       ├── pages/                      # Páginas completas
+  │       │   ├── Landing.tsx             # Landing page (seções empilhadas)
+  │       │   ├── BlogList.tsx            # Blog com filtro de tags
+  │       │   ├── BlogPostPage.tsx        # Artigo em Markdown + comentários
+  │       │   ├── PortfolioList.tsx       # Portfólio completo com filtros
+  │       │   ├── PortfolioDetail.tsx     # Detalhe do projeto
+  │       │   ├── CasesList.tsx           # Estudos de caso com filtro por setor
+  │       │   ├── CaseDetail.tsx          # Detalhe do estudo de caso
+  │       │   ├── ContatoPage.tsx         # Página de contato
+  │       │   ├── SobrePage.tsx           # Página sobre
+  │       │   ├── TestimonialsPage.tsx    # Depoimentos completos
+  │       │   ├── ComingSoon.tsx          # Placeholder para páginas futuras
+  │       │   ├── NotFound.tsx            # Página 404
+  │       │   └── admin/                  # Painel admin (ver ROUTE_MAP.md)
+  │       │       ├── AdminLayout.tsx     # Sidebar + topbar + footer
+  │       │       ├── AdminLogin.tsx      # Login form
+  │       │       ├── AdminDashboard.tsx  # Métricas
+  │       │       ├── AdminBlog.tsx       # Lista de posts
+  │       │       ├── BlogEditor.tsx      # Editor de post (Markdown)
+  │       │       ├── AdminPortfolio.tsx  # Lista de itens
+  │       │       ├── PortfolioEditor.tsx # Editor de item
+  │       │       ├── AdminCases.tsx      # Lista de estudos
+  │       │       ├── CaseStudyEditor.tsx # Editor de estudo
+  │       │       ├── AdminTestimonials.tsx # CRUD inline
+  │       │       ├── AdminInstagram.tsx  # Galeria manual
+  │       │       ├── AdminComments.tsx   # Moderação
+  │       │       └── AdminContact.tsx    # Caixa de entrada
+  │       │
+  │       ├── hooks/
+  │       │   ├── useApi.ts              # Fetch genérico (useEffect + useState)
+  │       │   ├── useAdminApi.ts         # Fetch autenticado + adminRequest()
+  │       │   └── useParallax.ts         # Parallax com observer compartilhado
+  │       │
+  │       ├── lib/
+  │       │   ├── apiClient.ts           # request() + authRequest() + ApiError
+  │       │   ├── adminToken.ts          # Token JWT em memória
+  │       │   ├── supabaseClient.ts      # Cliente Supabase (anon)
+  │       │   ├── utils.ts              # cn(), formatDate(), readingMinutes()
+  │       │   ├── images.ts             # URLs de imagens placeholder (Unsplash)
+  │       │   ├── caseStudiesData.ts    # Dados de fallback para estudos de caso
+  │       │   ├── markdown.ts           # Renderizador Markdown mínimo
+  │       │   └── seo.ts               # buildSeo() — title, OG, JSON-LD
+  │       │
+  │       ├── store/
+  │       │   ├── authStore.ts          # Zustand: session, user, signIn, signOut, hydrate
+  │       │   └── uiStore.ts            # Zustand: mobileNavOpen
+  │       │
+  │       ├── providers/
+  │       │   ├── Providers.tsx         # BrowserRouter + AuthProvider + HelmetProvider
+  │       │   ├── AuthProvider.tsx      # hydrate() na montagem
+  │       │   └── MotionProvider.tsx    # LazyMotion + domAnimation + reduced-motion
+  │       │
+  │       └── routes/
+  │           └── Protected.tsx         # Check de autenticação (redirect /admin/login)
   │
-  ├── shared/                             # Pacote compartilhado
+  ├── shared/                            # Pacote compartilhado
   │   ├── src/
-  │   │   ├── schemas/                    # Schemas Zod (blog, contact, portfolio, etc.)
-  │   │   ├── constants/                  # brand.ts (dados da empresa), nav.ts
-  │   │   ├── types/                      # Tipos TypeScript (supabase.ts)
-  │   │   └── index.ts                    # Barrel export
+  │   │   ├── index.ts                  # Barrel export
+  │   │   ├── schemas/                  # Schemas Zod
+  │   │   │   ├── index.ts
+  │   │   │   ├── blog.ts               # BlogPostInput + BlogQuery
+  │   │   │   ├── portfolio.ts          # PortfolioItemInput + PortfolioQuery
+  │   │   │   ├── caseStudy.ts          # CaseStudyInput + CaseResult
+  │   │   │   ├── testimonial.ts        # TestimonialInput
+  │   │   │   ├── contact.ts            # ContactInput + honeypot
+  │   │   │   └── comment.ts            # CommentInput + CommentStatus
+  │   │   ├── constants/
+  │   │   │   ├── brand.ts             # Dados centralizados da empresa
+  │   │   │   └── nav.ts               # navItems + adminNavItems + footerLegal
+  │   │   ├── types/
+  │   │   │   └── supabase.ts          # DbRow, AdminProfile, AdminRole
+  │   │   └── lib/
+  │   │       └── case.ts              # toCamel() / toSnake() — case conversion
   │   └── package.json
   │
-  ├── scripts/                            # Scripts de build
-  │   └── build-api.mjs                   # Bundle do backend com esbuild
+  ├── scripts/
+  │   └── build-api.mjs                # esbuild: api/_src/ → server.js
   │
-  ├── supabase/                           # Configurações do Supabase CLI
-  │
-  ├── docs/                               # Documentação
-  │   ├── SUPABASE_SCHEMA.sql             # DDL do banco
-  │   ├── SUPABASE_RLS.sql                # Políticas de segurança
-  │   ├── SUPABASE_SEED.sql               # Dados de exemplo
-  │   ├── ROUTE_MAP.md                    # Mapa de rotas
-  │   ├── INSTALL.md                      # Instruções de instalação
-  │   ├── DESENVOLVIMENTO.md              # Documentação de desenvolvimento
-  │   ├── DEPLOY.md                       # Instruções de deploy
-  │   └── README.txt                      # Este arquivo
-  │
-  ├── vercel.json                         # Configuração de deploy Vercel
-  ├── package.json                        # Monorepo root
-  └── .env.example                        # Template de variáveis de ambiente
+  ├── supabase/                         # Config Supabase CLI
+  ├── docs/                             # Documentação
+  ├── vercel.json                       # SPA rewrites + API routing
+  ├── package.json                      # Monorepo root
+  └── .env.example                      # Template de env vars
 
 
 ================================================================================
-  4. STACK TECNOLÓGICA DETALHADA
+  3. DESIGN SYSTEM
 ================================================================================
 
-  ┌─ FRONTEND ───────────────────────────────────────────────────────────────┐
+  3.1 Paleta de Cores (web/tailwind.config.ts)
+
+    ink            #0A0B0D   → Fundo principal (preto absoluto)
+    charcoal       #111316   → Fundo de seções alternadas
+    graphite       #1C1E22   → Cards, superfícies elevadas
+    graphite-light #282B30   → Bordas, hover states
+    smoke          #6B7075   → Texto secundário
+    mist           #A0A5AA   → Texto terciário
+    paper          #F5F2ED   → Texto principal (off-white quente)
+    cream          #EFE9DF   → Fundo admin
+    brass          #B8863C   → ACENTO PRINCIPAL (links, CTAs, bordas, focus ring)
+    brass-soft     #D4A96A   → Variação clara do brass
+    brass-dim      #8A6630   → Variação escura do brass
+    teal           #1A4A4A   → Secundário (deep teal)
+    teal-light     #2A6A6A   → Hover do teal
+    error          #8E2A2A   → Mensagens de erro
+    success        #2E5D45   → Mensagens de sucesso
+    warning        #A67A2E   → Avisos
+    clay           #6B3A2A   → Acento terroso
+    sage           #4F5D4F   → Acento neutro
+
+  3.2 Tipografia
+
+    Títulos:    "DM Serif Display" (serif, editorial, elegância)
+    Corpo:      Inter (sans, máxima legibilidade)
+    Eyebrow:    Inter, uppercase, tracking-[0.15em], cor brass
+    Display:    display-sm(2.5rem) / display-md(3.5rem) / display-lg(4.5rem) / display-xl(5.5rem)
+
+  3.3 Classes Utilitárias Personalizadas (em tailwind.css)
+
+    ════ Landing ════
+    .eyebrow          → Label decorativo uppercase + tracking + brass
+    .section-rule     → Linha horizontal decorativa (h-px w-12 bg-brass)
+    .glass-card       → Borda sutil + blur + sombra (efeito glassmorphism)
+    .glass-card-hover → Hover com glow brass + borda
+    .skeleton         → Skeleton shimmer animado (com ::after gradient)
+    .img-overlay      → Gradient overlay (de baixo para cima, ink/80 → transparent)
+    .badge            → Tag estilizada com borda brass
+    .link-underline   → Underline animado com hover (width transition)
+    .text-gradient-brass → Gradient linear brass no texto
+
+    ════ Blog ════
+    .prose-blog       → Tipografia de artigo (h2, h3, p, a, code, blockquote, etc.)
+
+    ════ Admin ════
+    .card-line        → Card com borda + sombra + rounded-lg
+    .admin-input      → Input com rounded-lg + ring focus brass
+    .admin-row        → Linha de tabela com hover highlight
+    .admin-tab        → Aba de filtro (neutral)
+    .admin-tab-active → Aba de filtro ativa (brass/charcoal)
+    .btn-outline-sm   → Botão outline pequeno (links de ação)
+
+  3.4 Animações (Framer Motion + CSS)
+
+    Nome              | Duração | Timing                  | Uso
+    ──────────────────|─────────|─────────────────────────|─────────────────────
+    fade-up           | 0.8s    | cubic-bezier(0.22,1,0.36,1) | ScrollReveal
+    fade-in           | 0.8s    | cubic-bezier(0.22,1,0.36,1) | Entrada suave
+    scale-in          | 0.5s    | cubic-bezier(0.22,1,0.36,1) | Modais/ripple
+    shimmer           | 2s      | linear, infinito         | Skeleton loading
+    float             | 4s      | ease-in-out, infinito    | Scroll indicator
+    pulse-soft        | 3s      | ease-in-out, infinito    | Elementos decorativos
+    border-glow       | 2s      | ease-in-out, infinito    | Destaque de borda
+
+  3.5 Efeitos Específicos
+
+    BUTTON RIPPLE:
+      Implementado em Button.tsx com useState + setTimeout 600ms.
+      Cria um <span> com animação scale-in via animation CSS.
+
+    SCROLL REVEAL:
+      ScrollReveal.tsx usa Framer Motion whileInView com viewport={{ once: true }}.
+      Reduz para fade-only se prefers-reduced-motion.
+
+    PARALLAX:
+      ParallaxImage.tsx usa useScroll + useTransform do Framer Motion.
+      Parallax com offset [start end, end start], speed configurável.
+      Scale sutil (1.05 → 1 → 1.05) para profundidade.
+      Desativa com prefers-reduced-motion.
+
+    LQIP (Low Quality Image Placeholder):
+      Implementado em BlogCard.tsx.
+      1. Skeleton shimmer enquanto imagem não carrega
+      2. Imagem começa com opacity-0 + blur-sm
+      3. onLoad → opacity-100 + blur-0 (transição 700ms)
+      4. onError → imgLoaded = true (remove skeleton, mostra nada)
+
+
+================================================================================
+  4. COMPONENTES CRÍTICOS
+================================================================================
+
+  ┌─ Navbar ─────────────────────────────────────────────────────────────────┐
   │                                                                          │
-  │  Framework:  React 18 + TypeScript (strict mode)                         │
-  │  Build:      Vite 5 + esbuild                                            │
-  │  Roteamento: React Router DOM v6 (lazy loading + Suspense)               │
-  │  Estado:     Zustand 5 (authStore, uiStore)                              │
-  │  Forms:      React Hook Form + Zod (validação compartilhada)             │
-  │  Estilos:    Tailwind CSS 3.4 (dark mode, custom palette)                │
-  │  Animação:   Framer Motion 11 (ScrollReveal, transições)                 │
-  │  SEO:        react-helmet-async + JSON-LD estruturado                    │
-  │  Ícones:     SVGs inline (sem dependência de biblioteca de ícones)       │
+  │  Arquivo: web/src/components/layout/Navbar.tsx                          │
   │                                                                          │
-  │  Estrutura:  pages/ → features/ → components/ (atomic design)            │
+  │  Funcionalidades:                                                        │
+  │  - Transparente no topo → bg-ink/80 + backdrop-blur ao scroll           │
+  │  - Progress bar de scroll (largura da página)                           │
+  │  - NavLinks com active state (text-brass)                               │
+  │  - Menu mobile com overlay fullscreen + trava de body scroll            │
+  │  - Botão CTA "Solicitar orçamento" → WhatsApp                          │
+  │  - Logo variant: 'solid' (scrolled) ou 'light' (landing top)            │
+  │                                                                          │
+  │  ⚠ BUG CORRIGIDO: useEffect com 'open' + 'location.pathname' juntos     │
+  │    causava fechamento imediato. Separado em dois effects.                │
   │                                                                          │
   └──────────────────────────────────────────────────────────────────────────┘
 
-  ┌─ BACKEND ───────────────────────────────────────────────────────────────┐
+  ┌─ BlogCard ───────────────────────────────────────────────────────────────┐
   │                                                                          │
-  │  Framework:  Fastify 4 (mais rápido que Express, schema validation       │
-  │              nativa com AJV, plugins encapsulados)                       │
-  │  Runtime:    Node.js (Vercel Serverless Functions)                       │
-  │  Bundle:     esbuild (compila _src/ → server.js)                        │
-  │  Validação:  Zod (schemas compartilhados com o frontend)                │
-  │  Plugins:    @fastify/cors, @fastify/helmet, @fastify/rate-limit        │
-  │  Database:   @supabase/supabase-js (admin client)                       │
-  │  Email:      Resend API (fetch direto — sem SDK)                        │
+  │  Arquivo: web/src/features/blog/BlogCard.tsx                            │
   │                                                                          │
-  │  Rotas:  Todas sob prefixo /api    (ver docs/ROUTE_MAP.md)              │
+  │  COMPARTILHADO: Usado por BlogPreview (home) e BlogList (/blog)         │
   │                                                                          │
-  └──────────────────────────────────────────────────────────────────────────┘
-
-  ┌─ DATABASE (Supabase PostgreSQL) ─────────────────────────────────────────┐
+  │  Props: post (BlogCardItem), index (opcional), aspect ('3/2' | '16/9') │
   │                                                                          │
-  │  Tabelas:  (ver docs/SUPABASE_SCHEMA.sql)                               │
+  │  Funcionalidades:                                                        │
+  │  - Parallax suave no hover (useParallax hook com observer compartilhado) │
+  │  - LQIP blur-up (skeleton → fade-in com blur transition)               │
+  │  - Fallback para BLOG_IMAGES (Unsplash) se cover_image_url ausente      │
+  │  - Badge de tempo de leitura (pill estilizado com border brass)         │
+  │  - Gradient overlay no hover (gradient-to-t from-black/20)              │
+  │  - Card com efeito lift (hover:-translate-y-1)                          │
+  │  - Footer com data formatada + link "Ler mais →"                       │
   │                                                                          │
-  │  portfolio_categories  → Categorias de portfólio                        │
-  │  portfolio_items       → Projetos do portfólio                          │
-  │  case_studies          → Estudos de caso                                │
-  │  testimonials          → Depoimentos de clientes                        │
-  │  instagram_posts       → Galeria do Instagram (manual)                  │
-  │  blog_posts            → Artigos do blog (com suporte a tags)           │
-  │  comments              → Comentários moderados (1 nível de aninhamento)  │
-  │  contact_submissions   → Mensagens do formulário de contato             │
-  │  admin_profiles        → Perfis de administradores (1:1 auth.users)     │
-  │  media_assets          → Ledger de uploads (opcional)                   │
-  │                                                                          │
-  │  RLS:  Leitura pública onde is_published = true                         │
-  │        INSERT anônimo em comments e contact_submissions                 │
-  │        CRUD total apenas para admin (auth.uid em admin_profiles)        │
-  │        Bucket 'media' com leitura pública, escrita via service-role     │
+  │  ⚠ Aspect ratio usa style inline (aspectRatio), NÃO classes Tailwind    │
+  │    dinâmicas (JIT não compila classes com template literals).           │
   │                                                                          │
   └──────────────────────────────────────────────────────────────────────────┘
 
+  ┌─ Button ─────────────────────────────────────────────────────────────────┐
+  │                                                                          │
+  │  Arquivo: web/src/components/ui/Button.tsx                              │
+  │                                                                          │
+  │  Props: variant (primary/secondary/ghost/link/whatsapp/outline)         │
+  │         size (sm/md/lg)                                                 │
+  │         Aceita to= (Link React Router) ou href= (anchor) ou onClick=    │
+  │                                                                          │
+  │  Ripple effect: Cria <span> animado via CSS animation scale-in          │
+  │  Link: import { Link } from 'react-router-dom' (para navegação SPA)     │
+  │                                                                          │
+  └──────────────────────────────────────────────────────────────────────────┘
 
-================================================================================
-  5. FLUXO DE BUILD E DEPLOY
-================================================================================
-
-  5.1 Build Local
-
-    npm run build:shared   → tsc compila shared/src/ → shared/dist/
-    npm run build:api      → scripts/build-api.mjs (esbuild) →
-                             api/_src/server.ts → api/_src/server.js
-    npm run build:web      → tsc typecheck + vite build → web/dist/
-
-    Ou tudo de uma vez:
-    npm run build           → shared → api → web (sequencial)
-
-  5.2 Build do Backend (esbuild)
-
-    O script scripts/build-api.mjs:
-    - Entrada: api/_src/server.ts (+ standalone.ts opcional)
-    - Saída:   api/_src/server.js (bundle único)
-    - External: fastify, @fastify/*, @supabase/supabase-js, zod
-    - Resolve: @projeto-sete/shared → shared/dist/index.js (inlineia no bundle)
-
-    USAR PATHS ABSOLUTOS via import.meta.url (independe de CWD).
-
-  5.3 Deploy Vercel
-
-    O deploy é feito via Vercel CLI ou integração GitHub:
-    vercel deploy --prod
-
-    O vercel.json configura:
-    - Rewrite: /api/:path*  →  /api/handler?__path=:path*
-    - Rewrite: /(.*)        →  /index.html  (SPA fallback)
-    - Function: api/handler.ts com maxDuration: 20s
-
-    IMPORTANTE: O handler.ts restaura a URL original a partir de __path
-    antes de passar para o Fastify. Isso é necessário porque o Vercel
-    não roteia corretamente paths com 2 segmentos para catch-all
-    [[...route]].ts (motivo pelo qual trocamos para rewrites explícitas).
-
-  5.4 Variáveis de Ambiente na Vercel
-
-    Obrigatórias:
-      SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
-      SUPABASE_JWT_SECRET, APP_URL, NODE_ENV=production
-      VITE_API_BASE=/api, VITE_SITE_URL
-
-    Email:
-      RESEND_API_KEY, MAIL_FROM, ADMIN_NOTIFY_EMAIL
-
-    Opcionais:
-      WHATSAPP_NUMBER, VITE_GOOGLE_MAPS_API_KEY, GOOGLE_MAPS_API_KEY
+  ┌─ Contact ────────────────────────────────────────────────────────────────┐
+  │                                                                          │
+  │  Arquivo: web/src/features/contact/Contact.tsx                          │
+  │                                                                          │
+  │  Formulário premium com:                                                 │
+  │  - React Hook Form + Zod validation (schema compartilhado via shared)    │
+  │  - Honeypot (campo oculto 'website' que bots preenchem)                 │
+  │  - Submit → POST /api/contact → salva no Supabase + email Resend       │
+  │  - Status de sucesso (mensagem verde) e erro                            │
+  │  - Google Maps Embed (se VITE_GOOGLE_MAPS_API_KEY configurada)          │
+  │  - Fallback para link do Google Maps se sem API key                     │
+  │                                                                          │
+  └──────────────────────────────────────────────────────────────────────────┘
 
 
 ================================================================================
-  6. ARQUITETURA DO ROTEAMENTO (VERCEL + FASTIFY)
+  5. HOOKS E UTILITÁRIOS
+================================================================================
+
+  ┌─ useApi (web/src/hooks/useApi.ts) ──────────────────────────────────────┐
+  │                                                                          │
+  │  Hook genérico de fetch para API pública.                                │
+  │  Retorna { data, status, error, refetch }                                │
+  │  Status: 'idle' | 'loading' | 'success' | 'error'                       │
+  │  Fetch acontece no mount; refetch() força novo fetch.                    │
+  │  Usa request() de apiClient.ts com tratamento de erro.                  │
+  │                                                                          │
+  │  Uso: const { data, status } = useApi<{ items: Item[] }>('/blog')       │
+  │                                                                          │
+  └──────────────────────────────────────────────────────────────────────────┘
+
+  ┌─ useAdminApi (web/src/hooks/useAdminApi.ts) ────────────────────────────┐
+  │                                                                          │
+  │  Hook de fetch AUTENTICADO para rotas /api/admin*.                      │
+  │  Status extra: 'unauth' (token ausente/expirado → redirect login)       │
+  │  Usa getAdminToken() de adminToken.ts para Bearer token.                │
+  │                                                                          │
+  │  Exporta também adminRequest() para mutations (POST/PATCH/DELETE).      │
+  │                                                                          │
+  │  Uso: const { data, status } = useAdminApi<{ items: Item[] }>('/admin/blog') │
+  │       await adminRequest('/blog', { method: 'POST', body: {...} })      │
+  │                                                                          │
+  └──────────────────────────────────────────────────────────────────────────┘
+
+  ┌─ useParallax (web/src/hooks/useParallax.ts) ────────────────────────────┐
+  │                                                                          │
+  │  Efeito parallax suave baseado na posição do elemento na viewport.      │
+  │                                                                          │
+  │  ARQUITETURA OTIMIZADA:                                                  │
+  │  - Um ÚNICO IntersectionObserver e scroll listener COMPARTILHADOS       │
+  │    entre todas as instâncias (padrão Set<Entry> em módulo)              │
+  │  - Observer com { threshold: 0 } para mínimas chamadas                  │
+  │  - Scroll listener com rAF throttling (ticking flag)                    │
+  │  - Scroll listener removido automaticamente quando nenhum elemento      │
+  │    está visível                                                         │
+  │  - Cleanup: entries.delete + observer.unobserve no unmount              │
+  │                                                                          │
+  │  Performance: Adequado para 20+ cards na página /blog.                  │
+  │                                                                          │
+  │  Uso: const { ref, offsetY } = useParallax(0.05)                       │
+  │       <div ref={ref} style={{ transform: translateY(${offsetY}px) }}> │
+  │                                                                          │
+  └──────────────────────────────────────────────────────────────────────────┘
+
+  ┌─ apiClient (web/src/lib/apiClient.ts) ──────────────────────────────────┐
+  │                                                                          │
+  │  request<T>(path, { method, body, token, signal }): Promise<T>          │
+  │                                                                          │
+  │  - BASE = import.meta.env.VITE_API_BASE ?? '/api'                      │
+  │  - Lança ApiError (classe custom com status + body) em HTTP não-ok      │
+  │  - Parse de JSON automático (verifica Content-Type)                     │
+  │  - Trata 204 No Content → undefined                                     │
+  │                                                                          │
+  │  authRequest<T>(path, opts): Usa getAdminToken() internamente.          │
+  │                                                                          │
+  └──────────────────────────────────────────────────────────────────────────┘
+
+  ┌─ utils (web/src/lib/utils.ts) ──────────────────────────────────────────┐
+  │                                                                          │
+  │  cn(...inputs)             → clsx (classnames condicionais)             │
+  │  formatDate(iso, options)  → Date.toLocaleDateString('pt-BR')           │
+  │  readingMinutes(text)      → max(1, round(words / 200))                 │
+  │                                                                          │
+  └──────────────────────────────────────────────────────────────────────────┘
+
+  ┌─ SEO (web/src/lib/seo.ts) ──────────────────────────────────────────────┐
+  │                                                                          │
+  │  buildSeo({ title, description, path, image, type, noindex, jsonLd })   │
+  │                                                                          │
+  │  Retorna objeto com: title, description, url, og:*, twitter:*, jsonLd   │
+  │  JSON-LD padrão: LocalBusiness (endereço, telefone, horário, geo, IG)   │
+  │  Pode sobrescrever jsonLd para Article em posts do blog.                │
+  │  SITE_URL = VITE_SITE_URL ?? 'https://projetosete.com.br'              │
+  │                                                                          │
+  └──────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+  6. ROTEAMENTO VERECL — HANDLER E REWRITES
 ================================================================================
 
   ┌─ IMPORTANTE PARA MANUTENÇÃO ────────────────────────────────────────────┐
   │                                                                          │
-  │  O roteamento passou por várias iterações para corrigir um bug onde      │
-  │  paths com 2 segmentos (/api/blog/slug) retornavam 404 do Vercel.       │
+  │  PROBLEMA: Rotas /api/blog/slug retornavam 404 no Vercel.               │
+  │  Motivo: Vercel não roteava corretamente paths com 2 segmentos          │
+  │          usando [[...route]].ts catch-all.                              │
   │                                                                          │
-  │  SOLUÇÃO ATUAL:                                                         │
+  │  SOLUÇÃO ATUAL (vercel.json):                                           │
+  │    {                                                                    │
+  │      "rewrites": [                                                      │
+  │        { "source": "/api/:path*", "destination": "/api/handler?__path=:path*" }, │
+  │        { "source": "/(.*)", "destination": "/index.html" }              │
+  │      ]                                                                  │
+  │    }                                                                    │
   │                                                                          │
-  │  1. vercel.json                                                         │
-  │     { "source": "/api/:path*", "destination": "/api/handler?__path=:path*" } │
+  │  api/handler.ts:                                                        │
+  │    1. Extrai __path da query string                                     │
+  │    2. Restaura req.url para /api/<path>                                │
+  │    3. Emite para Fastify via app.server.emit('request', req, res)       │
+  │    4. Se sem __path, trata como requisição raiz (/api)                  │
   │                                                                          │
-  │  2. api/handler.ts                                                      │
-  │     - Recebe a requisição em /api/handler?__path=blog/slug              │
-  │     - Extrai __path e restaura req.url = /api/blog/slug                 │
-  │     - Passa para Fastify via app.server.emit('request', req, res)      │
+  │  ⚠ NÃO REMOVA AS REWRITES EXPLÍCITAS.                                  │
+  │  ⚠ NÃO TENTE VOLTAR PARA [[...route]].ts.                               │
   │                                                                          │
-  │  NÃO TENTE VOLTAR PARA [[...route]].ts — não funciona com 2 segmentos   │
-  │  no Vercel. Mantenha as rewrites explícitas.                            │
+  └──────────────────────────────────────────────────────────────────────────┘
+
+  Roteamento SPA (frontend):
+    Todas as rotas que não são /api/* são servidas pelo index.html.
+    O React Router cuida do roteamento no cliente.
+    Isto está configurado em web/vercel.json e no vercel.json raiz.
+
+  Proxy de desenvolvimento:
+    web/vite.config.ts → server.proxy: /api → http://localhost:3001
+    Não precisa de CORS em desenvolvimento.
+
+
+================================================================================
+  7. SUPABASE — ESQUEMA E SEGURANÇA
+================================================================================
+
+  7.1 Tabelas Principais
+
+    portfolio_categories
+      id (uuid PK), slug (unique), name, position, created_at
+
+    portfolio_items
+      id, title, slug (unique), summary, description, category_id (FK),
+      project_type, location, year, area_m2, media (jsonb), cover_image_url,
+      is_featured, is_published, position, published_at,
+      created_at, updated_at, deleted_at (soft-delete)
+
+    case_studies
+      id, title, slug (unique), client, category, challenge, process,
+      results (jsonb), gallery (jsonb), cover_image_url,
+      is_published, featured, published_at, created_at, updated_at, deleted_at
+
+    testimonials
+      id, author, role, company, quote, rating, avatar_url,
+      is_published, position, created_at, updated_at
+
+    instagram_posts
+      id, caption, image_url, post_url, aspect_ratio, posted_at,
+      is_published, created_at
+
+    blog_posts
+      id, title, slug (unique), excerpt, body, cover_image_url, cover_alt,
+      reading_minutes, tags (text[]), author, author_avatar_url,
+      is_published, published_at, seo (jsonb),
+      created_at, updated_at, deleted_at
+
+    comments
+      id, blog_post_id (FK), parent_id (FK self, 1 nível),
+      author_name, author_email, body, status (pending/approved/rejected/spam),
+      created_at, deleted_at
+
+    contact_submissions
+      id, name, email, phone, subject, message, status (new/read/replied/archived),
+      created_at
+
+    admin_profiles
+      user_id (PK, FK auth.users), full_name, role (admin/editor), created_at
+
+  7.2 RLS (Row Level Security) — RESUMO
+
+    Tabelas de conteúdo:        SELECT público WHERE is_published = true
+                                CRUD admin (auth.uid() IN admin_profiles)
+    comments:                   INSERT anônimo (com honeypot)
+                                SELECT público WHERE status = 'approved'
+                                UPDATE/DELETE admin
+    contact_submissions:        INSERT anônimo (com honeypot)
+                                SELECT/UPDATE admin
+    admin_profiles:             SELECT próprio (auth.uid() = user_id)
+    Storage bucket 'media':     SELECT público, INSERT via service-role
+
+    DDL completo: docs/SUPABASE_SCHEMA.sql + docs/SUPABASE_RLS.sql
+
+
+================================================================================
+  8. PADRÕES DE CÓDIGO E CONVENÇÕES
+================================================================================
+
+  ┌─ CAMEL CASE vs SNAKE CASE ──────────────────────────────────────────────┐
+  │                                                                          │
+  │  Frontend (TypeScript): camelCase                                       │
+  │    - Schemas Zod: portfolioItemInputSchema (camelCase)                   │
+  │    - Componentes: isPublished, coverImageUrl, readingMinutes             │
+  │                                                                          │
+  │  Banco (Supabase/PostgreSQL): snake_case                                │
+  │    - Tabelas: blog_posts, portfolio_items, is_published, cover_image_url │
+  │                                                                          │
+  │  API:                                                                   │
+  │    - Input/Output: camelCase (validação Zod)                            │
+  │    - Antes de inserir no banco: toSnake() (shared/src/lib/case.ts)      │
+  │    - Depois de ler do banco: toCamel() (mesmo arquivo)                  │
+  │                                                                          │
+  │  ⚠ Atenção: toSnake/toCamel não fazem recursão profunda em arrays.      │
+  │                                                                          │
+  └──────────────────────────────────────────────────────────────────────────┘
+
+  ┌─ IMPORT ALIASES ────────────────────────────────────────────────────────┐
+  │                                                                          │
+  │  Frontend: @/  → web/src/                                              │
+  │            @projeto-sete/shared → shared/src/                          │
+  │                                                                          │
+  │  Config: web/tsconfig.app.json (paths) + web/vite.config.ts (resolve)   │
+  │                                                                          │
+  └──────────────────────────────────────────────────────────────────────────┘
+
+  ┌─ LAZY LOADING ──────────────────────────────────────────────────────────┐
+  │                                                                          │
+  │  Todas as páginas usam React.lazy() + Suspense com LoadingState.         │
+  │  router.tsx: lazy(() => import('@/pages/...').then(m => ({default: m.X}))) │
+  │                                                                          │
+  └──────────────────────────────────────────────────────────────────────────┘
+
+  ┌─ ESTADO GLOBAL ─────────────────────────────────────────────────────────┐
+  │                                                                          │
+  │  Zustand 5:                                                             │
+  │  - authStore: session, user, loading, error, signIn, signOut, hydrate   │
+  │  - uiStore: mobileNavOpen, setMobileNavOpen, toggleMobileNav            │
+  │                                                                          │
+  │  Token JWT: armazenado em MEMÓRIA (adminToken.ts), não em localStorage  │
+  │            (mais seguro, mas não persiste entre reloads).               │
+  │            syncToken() é chamada no signIn e em onAuthStateChange.      │
+  │                                                                          │
+  └──────────────────────────────────────────────────────────────────────────┘
+
+  ┌─ FORMS E VALIDAÇÃO ─────────────────────────────────────────────────────┐
+  │                                                                          │
+  │  Frontend: React Hook Form + zodResolver                               │
+  │  Schemas: shared/src/schemas/ (reaproveitados por API e front)          │
+  │  Admin: zodResolver(blogPostInputSchema as unknown as Parameters<...>)  │
+  │         (cast devido a incompatibilidade de tipos entre libs)           │
+  │                                                                          │
+  └──────────────────────────────────────────────────────────────────────────┘
+
+  ┌─ EMAIL ─────────────────────────────────────────────────────────────────┐
+  │                                                                          │
+  │  Prioridade: Resend (API)                                               │
+  │  Fallback: SMTP (se configurado)                                        │
+  │  Sem config: loga warning e retorna erro (não quebra o app)             │
+  │  Fire-and-forget: erro de envio não é exibido ao usuário                │
+  │                                                                          │
+  │  Enviado após POST /api/contact salvar no Supabase.                     │
   │                                                                          │
   └──────────────────────────────────────────────────────────────────────────┘
 
 
 ================================================================================
-  7. COMPONENTES E HOOKS IMPORTANTES
+  9. COMANDOS ÚTEIS
 ================================================================================
 
-  ┌─ BlogCard (COMPARTILHADO) ──────────────────────────────────────────────┐
+  npm run dev              → web:5173 + api:3001 (concurrently)
+  npm run build            → shared → api → web
+  npm run build:web        → Vite build (web/dist/)
+  npm run build:api        → esbuild (api/_src/ → server.js)
+  npm run build:shared     → tsc (shared/src/ → shared/dist/)
+  npm run typecheck        → tsc --noEmit em todos os workspaces
+  npm run format           → Prettier (todos os arquivos)
+  npm run format:check     → Verificar formatação
+  npm run lint             → Lint (pendente ESLint)
+
+  npx vercel deploy --prod → Deploy Vercel
+  npx vercel env add       → Adicionar env var na Vercel
+
+
+================================================================================
+  10. VARIÁVEIS DE AMBIENTE
+================================================================================
+
+  ┌─ api/.env (raiz) ───────────────────────────────────────────────────────┐
   │                                                                          │
-  │  Arquivo: web/src/features/blog/BlogCard.tsx                            │
-  │                                                                          │
-  │  Usado por: BlogPreview.tsx (homepage) e BlogList.tsx (/blog)           │
-  │                                                                          │
-  │  Funcionalidades:                                                        │
-  │  - Imagem com parallax suave ao scroll (useParallax hook               │
-  │    com observer compartilhado)                                          │
-  │  - LQIP blur-up: skeleton shimmer → fade-in com blur (onLoad/onError) │
-  │  - Fallback para BLOG_IMAGES (Unsplash) quando não há cover_image_url  │
-  │  - Badge de tempo de leitura (pill estilizado)                         │
-  │  - Gradient overlay na imagem ao hover                                 │
-  │  - Card com efeito lift (hover:-translate-y-1)                         │
-  │  - Footer com data + link "Ler mais →"                                │
-  │  - Props: post (BlogCardItem), index (opcional), aspect ('3/2' ou '16/9') │
-  │                                                                          │
-  │  IMPORTANTE: O aspect ratio usa style inline (aspectRatio), NÃO classes │
-  │  Tailwind dinâmicas, porque o JIT não compila classes com template      │
-  │  literals (ex: aspect-[${aspect}]).                                    │
+  │  SUPABASE_URL                  → URL do projeto Supabase                 │
+  │  SUPABASE_ANON_KEY             → Chave anônima (pública)                 │
+  │  SUPABASE_SERVICE_ROLE_KEY     → Chave service-role (admin DB)          │
+  │  SUPABASE_JWT_SECRET           → Secret para verificar JWT tokens       │
+  │  RESEND_API_KEY                → API key do Resend (email)              │
+  │  MAIL_FROM                     → Email de origem (ex: contato@...)      │
+  │  ADMIN_NOTIFY_EMAIL            → Email que recebe notificações          │
+  │  APP_URL                       → URL do site (ex: https://projetosete...)│
+  │  NODE_ENV                      → development / production               │
   │                                                                          │
   └──────────────────────────────────────────────────────────────────────────┘
 
-  ┌─ useParallax (HOOK) ────────────────────────────────────────────────────┐
+  ┌─ web/.env ──────────────────────────────────────────────────────────────┐
   │                                                                          │
-  │  Arquivo: web/src/hooks/useParallax.ts                                  │
-  │                                                                          │
-  │  Cria um efeito parallax suave baseado na posição do elemento na        │
-  │  viewport. Usa IntersectionObserver + requestAnimationFrame.            │
-  │                                                                          │
-  │  Uso: const { ref, offsetY } = useParallax(0.05)                       │
-  │       <div ref={ref} style={{ transform: translateY(${offsetY}px) }} />│
-  │                                                                          │
-  │  ARQUITETURA: Um ÚNICO IntersectionObserver e scroll listener são      │
-  │  compartilhados entre TODAS as instâncias do hook (padrão Set<Entry>    │
-  │  em nível de módulo). Evita N observers + N listeners.                 │
-  │  - Observer com { threshold: 0 } para mínimas chamadas                 │
-  │  - scroll listener com rAF throttling (ticking flag)                   │
-  │  - Scroll listener removido automaticamente quando nenhum elemento      │
-  │    está visível                                                        │
-  │  - Cleanup: entries.delete + observer.unobserve no unmount             │
-  │                                                                          │
-  │  Performance: Adequado para 20+ cards na página /blog.                 │
+  │  VITE_SUPABASE_URL             → URL do projeto Supabase                 │
+  │  VITE_SUPABASE_ANON_KEY        → Chave anônima (pública)                 │
+  │  VITE_API_BASE                 → /api (proxy Vite ou produção)          │
+  │  VITE_SITE_URL                 → URL do site                             │
+  │  VITE_GOOGLE_MAPS_API_KEY      → API key do Google Maps Embed           │
   │                                                                          │
   └──────────────────────────────────────────────────────────────────────────┘
-
-  ┌─ LQIP (Low Quality Image Placeholder) ─────────────────────────────────┐
-  │                                                                          │
-  │  Implementado no BlogCard.tsx para todas as imagens dos cards.          │
-  │                                                                          │
-  │  Como funciona:                                                         │
-  │  1. Enquanto a imagem não carrega, um div com classe 'skeleton'        │
-  │     (shimmer animado) cobre a área da imagem                           │
-  │  2. A imagem começa com opacity-0 blur-sm                              │
-  │  3. Ao carregar (onLoad), a classe muda para opacity-100 blur-0        │
-  │     com transição CSS de 700ms                                         │
-  │  4. Em caso de erro (onError), o placeholder é removido para não       │
-  │     ficar travado para sempre                                          │
-  │                                                                          │
-  │  Estado: imgLoaded (useState) controlado por onLoad/onError            │
-  │  (useCallback com deps vazias para referência estável)                 │
-  │                                                                          │
-  └──────────────────────────────────────────────────────────────────────────┘
-
-  ┌─ ScrollReveal ──────────────────────────────────────────────────────────┐
-  │                                                                          │
-  │  Componente que anima a entrada de elementos ao scroll (fade-up)        │
-  │  usando Framer Motion whileInView.                                      │
-  │                                                                          │
-  └──────────────────────────────────────────────────────────────────────────┘
-
-  ┌─ Navbar ────────────────────────────────────────────────────────────────┐
-  │                                                                          │
-  │  Arquivo: web/src/components/layout/Navbar.tsx                          │
-  │                                                                          │
-  │  IMPORTANTE: O menu mobile teve um bug onde o useEffect tinha 'open'    │
-  │  como dependência junto com 'location.pathname', causando fechamento    │
-  │  imediato do menu ao abrir. A correção separou em dois effects:         │
-  │  - Um para fechar na navegação                                          │
-  │  - Outro para travar/liberar o body scroll                             │
-  │                                                                          │
-  │  NÃO JUNTE OS DOIS EFFECTS NOVAMENTE.                                   │
-  │                                                                          │
-  └──────────────────────────────────────────────────────────────────────────┘
-
-  ┌─ Mailer ────────────────────────────────────────────────────────────────┐
-  │                                                                          │
-  │  Arquivo: api/_src/lib/mailer.ts                                        │
-  │                                                                          │
-  │  Prioriza Resend (API). Se RESEND_API_KEY não setada, tenta SMTP.       │
-  │  Se nenhum configurado, loga warning e retorna erro (não quebra).       │
-  │                                                                          │
-  └──────────────────────────────────────────────────────────────────────────┘
-
-
-================================================================================
-  8. DESIGN SYSTEM
-================================================================================
-
-  8.1 Paleta de Cores
-
-    ink            #0A0B0D  (preto absoluto)
-    charcoal       #111316  (fundo de seções alternadas)
-    graphite       #1C1E22  (cards, superfícies elevadas)
-    graphite-light #282B30  (bordas, hover)
-    smoke          #6B7075  (texto secundário)
-    mist           #A0A5AA  (texto terciário)
-    paper          #F5F2ED  (texto principal, off-white quente)
-    brass          #B8863C  (acento principal — bordas, links, CTAs)
-    brass-soft     #D4A96A  (variação mais clara do brass)
-    teal           #1A4A4A  (secundário, deep teal)
-
-    Tailwind config em web/tailwind.config.ts
-
-  8.2 Tipografia
-
-    Títulos:  DM Serif Display (serif, editorial)
-    Corpo:    Inter (sans, máxima legibilidade)
-    Eyebrow:  Inter, uppercase, tracking-[0.15em], text-brass
-
-  8.3 Classes Utilitárias (componentes Tailwind customizados)
-
-    .skeleton         → Loading shimmer animado (com ::after highlight)
-    .glass-card       → Efeito glassmorphism (blur + borda sutil)
-    .glass-card-hover → Hover com glow brass
-    .eyebrow          → Label uppercase tracking-wider
-    .prose-blog       → Tipografia para posts do blog
-    .link-underline   → Underline animado em links
-
-    ┌─ ADMIN ───────────────────────────────────────────────────────────────┐
-    │                                                                          │
-    │  Classes exclusivas para o painel administrativo:                       │
-    │                                                                          │
-    │  .card-line       → Card com borda, sombra sutil e rounded-lg           │
-    │  .admin-input     → Input com rounded-lg, ring focus, transição         │
-    │  .admin-row       → Linha de tabela com hover highlight                 │
-    │  .admin-tab       → Aba de filtro (neutral)                            │
-    │  .admin-tab-active→ Aba de filtro ativa (brass)                        │
-    │  .btn-outline-sm  → Link com estilo de botão outline pequeno           │
-    │                                                                          │
-    │  NOTA: .card-line estava undefined — não renderizava borda/sombra.      │
-    │  Foi definido em tailwind.css para corrigir todos os cards do admin.    │
-    │                                                                          │
-    └──────────────────────────────────────────────────────────────────────────┘
-
-  8.4 Animações
-
-    shimmer:   2s, linear, infinito  (skeleton loading)
-    fade-up:   0.8s, cubic-bezier(0.22,1,0.36,1)  (ScrollReveal)
-    float:     4s, ease-in-out, infinito  (elementos decorativos)
-    scale-in:  0.5s  (modais)
-
-
-================================================================================
-  9. FLUXO DE EMAIL (FORMULÁRIO DE CONTATO)
-================================================================================
-
-  1. Usuário preenche formulário em /#contato
-  2. POST /api/contact com { name, email, phone?, subject?, message }
-     + honeypot (campo oculto 'website')
-  3. API salva no Supabase (contact_submissions)
-  4. API envia email via Resend para ADMIN_NOTIFY_EMAIL
-  5. Resposta: { ok: true, message: "Mensagem recebida..." }
-
-  Rate limit: 5 requisições por 10 minutos (por IP)
-
-
-================================================================================
-  10. MANUTENÇÃO — CHECKLIST PARA UPGRADES
-================================================================================
-
-  [ ] Antes de qualquer upgrade, leia este README.txt e o docs/DESENVOLVIMENTO.md
-
-  [ ── DEPENDÊNCIAS ── ]
-
-  [ ] npm outdated  → verificar versões disponíveis
-  [ ] Atualizar com cuidado: npm update (ou npm install packagename@latest)
-  [ ] Testar build completo: npm run build
-  [ ] Verificar breaking changes nas libs principais:
-        - React 18 → 19 (cuidado com hydration, concurrent features)
-        - Vite 5 → 6
-        - Tailwind CSS 3 → 4 (grandes mudanças no JIT)
-        - Fastify 4 → 5
-        - Supabase JS SDK v2 → v3
-
-  [ ── ROTEAMENTO ── ]
-
-  [ ] Se mexer no vercel.json, TESTE:
-        - /api/health (1 segmento)
-        - /api/blog (1 segmento com query)
-        - /api/blog/slug (2 segmentos)
-        - /portfolio (SPA rewrite)
-  [ ] Se trocar o handler.ts, mantenha a lógica de restauração do __path
-  [ ] Se migrar para outro provider (Render, Railway), o roteamento muda
-
-  [ ── BANCO DE DADOS ── ]
-
-  [ ] Alterações no schema: execute SUPABASE_SCHEMA.sql (idempotente)
-  [ ] Novas tabelas: criar RLS policies em SUPABASE_RLS.sql
-  [ ] Migrations: considere usar o Supabase CLI (supabase migration new)
-  [ ] Backup antes de alterar dados em produção
-
-  [ ── FRONTEND ── ]
-
-  [ ] Novas seções na landing: criar em web/src/features/
-  [ ] Novas páginas: adicionar rota em web/src/router.tsx (lazy import)
-  [ ] Novos schemas: adicionar em shared/src/schemas/ + exportar
-  [ ] Testar em todos os viewports: 360px, 768px, 1024px, 1440px
-  [ ] Verificar acessibilidade (axe DevTools)
-  [ ] Verificar Lighthouse > 90
-
-  [ ── DEPLOY ── ]
-
-  [ ] git push → deploy automático no Vercel (ou vercel deploy --prod)
-  [ ] Verificar variáveis de ambiente na Vercel (Settings → Environment Variables)
-  [ ] Testar /api/health após deploy
-  [ ] Testar formulário de contato (envio de email)
 
 
 ================================================================================
   11. SOLUÇÃO DE PROBLEMAS COMUNS
 ================================================================================
 
-  ┌─ PROBLEMA: Rota /api/blog/slug retorna 404 do Vercel ──────────────────┐
-  │                                                                          │
-  │  Causa: As rewrites explícitas podem ter sido removidas ou alteradas.   │
-  │  Solução: Verifique vercel.json — deve ter:                            │
-  │    { "source": "/api/:path*", "destination": "/api/handler?__path=:path*" } │
-  │                                                                          │
+  ┌─ Rota /api/blog/slug retorna 404 do Vercel ────────────────────────────┐
+  │  Causa: Rewrites removidas ou handler corrompido.                       │
+  │  Solução: Verifique vercel.json rewrites + api/handler.ts               │
   └──────────────────────────────────────────────────────────────────────────┘
 
-  ┌─ PROBLEMA: Menu mobile não abre ────────────────────────────────────────┐
-  │                                                                          │
-  │  Causa: useEffect com 'open' e 'location.pathname' juntos no array      │
-  │         de dependências.                                                │
-  │  Solução: Separe em dois useEffect. Veja Navbar.tsx.                   │
-  │                                                                          │
+  ┌─ Menu mobile não abre / fecha imediatamente ────────────────────────────┐
+  │  Causa: useEffect com dependências conflitantes.                        │
+  │  Solução: Separe em dois effects (ver Navbar.tsx).                      │
   └──────────────────────────────────────────────────────────────────────────┘
 
-  ┌─ PROBLEMA: Email não é enviado (mas formulário mostra sucesso) ────────┐
-  │                                                                          │
-  │  Causa: RESEND_API_KEY não configurada ou inválida.                    │
-  │  Solução: Verifique api/.env ou Vercel env vars.                       │
-  │  O sendMail() usa void (fire-and-forget) — erros não são mostrados     │
-  │  ao usuário. Verifique os logs da Vercel.                              │
-  │                                                                          │
+  ┌─ Inputs do admin com texto invisível (claro sobre claro) ──────────────┐
+  │  Causa: Herdam text-paper (claro) do body global.                       │
+  │  Solução: Adicionar .admin-input com text-ink. CSS extra para selects:  │
+  │    .bg-cream select option { color: #0A0B0D; background: #F5F2ED; }   │
   └──────────────────────────────────────────────────────────────────────────┘
 
-  ┌─ PROBLEMA: Build falha com erro de tipo ────────────────────────────────┐
-  │                                                                          │
-  │  Causa: Shared package desatualizado ou incompatível.                   │
-  │  Solução: npm run build:shared primeiro, depois build:api e build:web.  │
-  │                                                                          │
+  ┌─ Build falha com erro de tipo ──────────────────────────────────────────┐
+  │  Causa: Shared desatualizado.                                           │
+  │  Solução: npm run build:shared primeiro.                                │
   └──────────────────────────────────────────────────────────────────────────┘
 
-  ┌─ PROBLEMA: Função Vercel retorna 500 ───────────────────────────────────┐
-  │                                                                          │
-  │  Causa: Pacote @projeto-sete/shared não resolvido em runtime.          │
-  │  Solução: O esbuild inlineia o shared no bundle (via resolve plugin    │
-  │           em scripts/build-api.mjs). Se mudar a estrutura do shared,   │
-  │           atualize o plugin.                                           │
-  │                                                                          │
+  ┌─ Card-line sem borda/sombra ────────────────────────────────────────────┐
+  │  Causa: Classe undefined (não definida como componente CSS).            │
+  │  Solução: Definir .card-line em tailwind.css.                           │
   └──────────────────────────────────────────────────────────────────────────┘
 
-  ┌─ PROBLEMA: Inputs/selects do admin com texto invisível ───────────────┐
-  │                                                                          │
-  │  Sintoma: No painel admin (/admin/*), o texto de inputs, textareas e    │
-  │  selects não aparece — só fica visível ao passar o mouse.              │
-  │                                                                          │
-  │  Causa: O body global tem `text-paper` (claro). Os form elements do     │
-  │  admin usam `bg-paper` (claro) mas herdam `text-paper`, criando texto  │
-  │  claro sobre fundo claro. O dropdown nativo dos `<select>` também      │
-  │  herda cores escuras do tema do sistema.                               │
-  │                                                                          │
-  │  Solução: Adicionar `text-ink` em todos os `<input>`, `<textarea>` e    │
-  │  `<select>` do admin. Para os dropdowns nativos, CSS rule:             │
-  │    .bg-cream select option { color: #0A0B0D; background: #F5F2ED; }    │
-  │                                                                          │
+  ┌─ CORB warning no console ───────────────────────────────────────────────┐
+  │  Descrição: "Cross-Origin Read Blocking" — warning benigno.             │
+  │  Impacto: Baixo/nulo.                                                   │
   └──────────────────────────────────────────────────────────────────────────┘
 
-  ┌─ PROBLEMA: CORB warning no console do navegador ───────────────────────┐
-  │                                                                          │
-  │  Descrição: "Cross-Origin Read Blocking (CORB)"                         │
-  │  Causa: Resposta de API cross-origin bloqueada pelo navegador.         │
-  │  Impacto: Baixo — não afeta funcionalidade. Apenas um warning.         │
-  │  Solução: Ajustar cabeçalhos CORS no plugin se necessário.             │
-  │                                                                          │
+  ┌─ Email não enviado (formulário mostra sucesso) ─────────────────────────┐
+  │  Causa: RESEND_API_KEY não configurada.                                 │
+  │  Solução: Configure env var. Erro é fire-and-forget (não exibido).      │
   └──────────────────────────────────────────────────────────────────────────┘
 
 
 ================================================================================
-  12. COMANDOS ÚTEIS
+  12. CHECKLIST PARA FUTUROS DESENVOLVIMENTOS
 ================================================================================
 
-  npm run dev              → Desenvolvimento (web:5173 + api:3001)
-  npm run build            → Build completo (shared → api → web)
-  npm run build:web        → Build apenas frontend
-  npm run build:api        → Build apenas backend (esbuild)
-  npm run build:shared     → Build apenas shared (tsc)
-  npm run format           → Prettier em todos os arquivos
-  npm run format:check     → Verificar formatação
-  npm run typecheck        → Verificar tipos (todos os workspaces)
+  ANTES DE COMEÇAR:
+  [ ] Leia este README.txt + docs/ROUTE_MAP.md
+  [ ] Entenda o padrão camelCase ↔ snake_case (shared/src/lib/case.ts)
+  [ ] Verifique se shared precisa de build: npm run build:shared
 
-  npx vercel deploy --prod → Deploy para produção
-  npx vercel env add       → Adicionar variável de ambiente na Vercel
-  npx vercel env ls prod   → Listar variáveis de ambiente
+  NOVAS SEÇÕES NA LANDING:
+  [ ] Criar em web/src/features/nova-secao/
+  [ ] Adicionar no router.tsx ou diretamente no Landing.tsx
+  [ ] Seção deve aceitar tone (dark/charcoal/cream/light)
 
-  curl https://projeto-sete.vercel.app/api/health  → Verificar API
+  NOVAS PÁGINAS:
+  [ ] Adicionar lazy import em router.tsx
+  [ ] Usar <Seo> para meta tags + JSON-LD
+  [ ] Se precisar de API, adicionar hook useApi/useAdminApi
+
+  NOVOS SCHEMAS:
+  [ ] Adicionar em shared/src/schemas/
+  [ ] Exportar em shared/src/schemas/index.ts
+  [ ] Build shared: npm run build:shared
+  [ ] Usar toSnake() antes de inserir no banco
+  [ ] Usar toCamel() depois de ler do banco
+
+  NOVAS ROTAS NA API:
+  [ ] Adicionar em api/_src/routes/
+  [ ] Registrar em api/_src/server.ts
+  [ ] Se admin: usar preHandler: adminGuard ou requireAdmin
+  [ ] Build api: npm run build:api
+
+  MUDANÇAS NO BANCO:
+  [ ] Executar scripts SQL no Supabase Dashboard (SQL Editor)
+  [ ] Atualizar docs/SUPABASE_SCHEMA.sql (idempotente)
+  [ ] Adicionar RLS policies em docs/SUPABASE_RLS.sql
+  [ ] Considerar Supabase CLI para migrations: supabase migration new
+
+  DEPLOY:
+  [ ] git push → CI roda lint + typecheck + build
+  [ ] Vercel deploy automático (ou vercel deploy --prod)
+  [ ] Verificar /api/health após deploy
+  [ ] Verificar SPA: navegar para /blog e dar refresh
+  [ ] Verificar API: curl /api/blog (1 segmento) e /api/blog/slug (2 segmentos)
+
+  TESTES:
+  [ ] Testar em viewports: 360px, 768px, 1024px, 1440px
+  [ ] Verificar acessibilidade (axe DevTools)
+  [ ] Lighthouse ≥ 90
+  [ ] npm run typecheck (todos os workspaces)
+  [ ] npm run build (completo)
 
 
 ================================================================================
-  13. CONTATOS E REFERÊNCIAS
+  13. DEPENDÊNCIAS PRINCIPAIS
 ================================================================================
 
-  Supabase Dashboard:    https://supabase.com/dashboard/project/twrohdescsfvgrghukkb
-  Vercel Dashboard:     https://vercel.com/saudemodernas-projects/projeto-sete
-  Resend Dashboard:     https://resend.com
-  GitHub Repo:          https://github.com/adrianfam/projeto-sete
+  Frontend (web):
+    react 18.3         → UI
+    react-router-dom 6 → Roteamento SPA
+    framer-motion 11   → Animações
+    zustand 5          → Estado global
+    react-hook-form 7  → Formulários
+    @hookform/resolvers→ Integração Zod
+    zod 3              → Validação
+    @supabase/supabase-js 2 → Cliente Supabase
+    react-helmet-async → SEO
+    clsx               → Classnames condicionais
+    tailwindcss 3.4    → CSS utility-first
+    vite 5             → Build tool
 
-  Documentação:
-    Fastify:     https://fastify.dev/docs/latest/
-    Supabase JS: https://supabase.com/docs/reference/javascript
-    Vercel:      https://vercel.com/docs
-    Tailwind:    https://tailwindcss.com/docs
+  Backend (api):
+    fastify 4          → Framework HTTP
+    @fastify/cors      → CORS
+    @fastify/helmet    → Segurança
+    @fastify/rate-limit→ Rate limiting
+    @supabase/supabase-js 2 → Cliente Supabase
+    zod 3              → Validação
+    dotenv             → Env vars
+    tsx                → TypeScript execution (dev)
+
+  Build:
+    esbuild            → Bundle do backend
+    typescript 5.7     → Type checking
+    prettier 3.4       → Formatação
+    concurrently       → Dev servers paralelos
+    sharp              → Processamento de imagem (dev)
+
 
 ================================================================================
   FIM DA DOCUMENTAÇÃO
-  Última atualização: Julho 2026 (v3 — admin visual overhaul + sidebar icons + mobile nav)
+  Última atualização: Julho/2026
 ================================================================================

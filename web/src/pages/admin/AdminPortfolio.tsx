@@ -42,16 +42,16 @@ export function AdminPortfolio() {
 
       {status === 'loading' && <LoadingState className="py-16" />}
       {status !== 'loading' && items.length === 0 && (
-        <p className="py-16 text-center text-smoke">Nenhum item. Crie o primeiro.</p>
+        <p className="py-16 text-center text-mist">Nenhum item. Crie o primeiro.</p>
       )}
 
       {items.length > 0 && (
-        <ul className="mt-6 card-line divide-y divide-mist/20 overflow-hidden">
+        <ul className="mt-6 card-line divide-y divide-graphite-light overflow-hidden">
           {items.map((p) => (
             <li key={p.id} className="admin-row">
               <div className="min-w-0">
-                <p className="truncate font-medium text-ink">{p.title}</p>
-                <p className="text-xs text-smoke">
+                <p className="truncate font-medium text-paper">{p.title}</p>
+                <p className="text-xs text-mist">
                   /portfolio/{p.slug} · {p.project_type ?? '—'} · pos {p.position}
                 </p>
               </div>
@@ -59,13 +59,13 @@ export function AdminPortfolio() {
                 <span
                   className={
                     'badge ' +
-                    (p.is_published ? 'border-success/30 text-success' : 'border-mist/40 text-smoke')
+                    (p.is_published ? 'border-success/50 text-success' : 'border-graphite-light text-mist')
                   }
                 >
                   {p.is_published ? 'Publicado' : 'Rascunho'}
                 </span>
                 {p.is_featured && (
-                  <span className="badge border-brass/30 text-brass">Destaque</span>
+                  <span className="badge">Destaque</span>
                 )}
                 <Link to={`/admin/portfolio/${p.id}`} className="text-sm text-brass link-underline">
                   Editar

@@ -46,6 +46,21 @@ const icons: Record<string, JSX.Element> = {
       <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" />
     </svg>
   ),
+  media: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
+    </svg>
+  ),
+  users: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  ),
+  clock: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+    </svg>
+  ),
 }
 
 export function AdminLayout() {
@@ -54,11 +69,11 @@ export function AdminLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="min-h-screen bg-charcoal">
       {/* Overlay mobile */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-30 bg-ink/40 md:hidden"
+          className="fixed inset-0 z-30 bg-ink/60 md:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
@@ -66,13 +81,13 @@ export function AdminLayout() {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-mist/30 bg-paper transition-transform duration-300 md:translate-x-0',
+          'fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-graphite-light bg-ink transition-transform duration-300 md:translate-x-0',
           mobileOpen ? 'translate-x-0' : '-translate-x-full',
         )}
       >
         {/* Logo / Brand */}
         <div className="flex items-center justify-between px-6 py-6">
-          <p className="font-serif text-xl">
+          <p className="font-serif text-xl text-paper">
             Projeto <span className="text-brass">Sete</span>
             <span className="ml-2 text-xs font-sans uppercase tracking-eyebrow text-smoke">
               Admin
@@ -80,7 +95,7 @@ export function AdminLayout() {
           </p>
           <button
             onClick={() => setMobileOpen(false)}
-            className="text-smoke hover:text-ink md:hidden"
+            className="text-smoke hover:text-paper md:hidden"
             aria-label="Fechar menu"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -101,8 +116,8 @@ export function AdminLayout() {
                 cn(
                   'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
                   isActive
-                    ? 'bg-brass/12 text-ink font-medium'
-                    : 'text-smoke hover:bg-white/50 hover:text-ink',
+                    ? 'bg-brass/15 text-brass-soft font-medium'
+                    : 'text-mist hover:bg-graphite hover:text-paper',
                 )
               }
             >
@@ -113,7 +128,7 @@ export function AdminLayout() {
         </nav>
 
         {/* User / Sign out */}
-        <div className="border-t border-mist/30 px-6 py-4">
+        <div className="border-t border-graphite-light px-6 py-4">
           {user?.email && (
             <p className="mb-2 truncate text-xs text-smoke">{user.email}</p>
           )}
@@ -133,17 +148,17 @@ export function AdminLayout() {
       {/* Main content */}
       <main className="md:pl-64">
         {/* Mobile top bar */}
-        <div className="flex items-center gap-3 border-b border-mist/30 bg-white/50 px-4 py-3 md:hidden">
+        <div className="flex items-center gap-3 border-b border-graphite-light bg-ink/80 backdrop-blur-sm px-4 py-3 md:hidden">
           <button
             onClick={() => setMobileOpen(true)}
-            className="text-smoke hover:text-ink"
+            className="text-mist hover:text-paper"
             aria-label="Abrir menu"
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
             </svg>
           </button>
-          <p className="font-serif text-base">
+          <p className="font-serif text-base text-paper">
             Projeto <span className="text-brass">Sete</span>
           </p>
         </div>

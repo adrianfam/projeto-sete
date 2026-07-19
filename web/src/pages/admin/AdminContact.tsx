@@ -38,7 +38,7 @@ export function AdminContact() {
   return (
     <>
       <Seo title="Atendimento — Projeto Sete Admin" noindex />
-      <h1 className="font-serif text-3xl">Atendimento</h1>
+      <h1 className="font-serif text-3xl text-paper">Atendimento</h1>
 
       <div className="mt-6 flex flex-wrap gap-2">
         {(['new', 'read', 'replied', 'archived'] as Filter[]).map((f) => (
@@ -54,20 +54,20 @@ export function AdminContact() {
 
       {status === 'loading' && <LoadingState className="py-16" />}
       {status !== 'loading' && items.length === 0 && (
-        <p className="py-16 text-center text-smoke">Sem mensagens neste filtro.</p>
+        <p className="py-16 text-center text-mist">Sem mensagens neste filtro.</p>
       )}
 
       {items.length > 0 && (
         <ul className="mt-6 space-y-4">
           {items.map((m) => (
-            <li key={m.id} className="card-line bg-paper p-5">
+            <li key={m.id} className="card-line bg-graphite p-5">
               <div className="flex items-baseline justify-between gap-4">
-                <p className="font-medium text-ink">{m.name}</p>
-                <p className="text-xs text-smoke">{formatDate(m.created_at)}</p>
+                <p className="font-medium text-paper">{m.name}</p>
+                <p className="text-xs text-mist">{formatDate(m.created_at)}</p>
               </div>
-              <p className="text-xs text-smoke">{m.email}{m.phone ? ` · ${m.phone}` : ''}</p>
-              {m.subject && <p className="mt-1 text-sm font-medium text-ink">{m.subject}</p>}
-              <p className="mt-2 whitespace-pre-line text-sm text-smoke">{m.message}</p>
+              <p className="text-xs text-mist">{m.email}{m.phone ? ` · ${m.phone}` : ''}</p>
+              {m.subject && <p className="mt-1 text-sm font-medium text-paper/80">{m.subject}</p>}
+              <p className="mt-2 whitespace-pre-line text-sm text-mist">{m.message}</p>
 
               <div className="mt-4 flex flex-wrap gap-2">
                 <Button size="sm" variant="ghost" onClick={() => setStatus(m.id, 'read')}>

@@ -36,7 +36,7 @@ export function AdminCases() {
     <>
       <Seo title="Estudos de Caso — Projeto Sete Admin" noindex />
       <div className="flex items-center justify-between">
-        <h1 className="font-serif text-3xl">Estudos de Caso</h1>
+        <h1 className="font-serif text-3xl text-paper">Estudos de Caso</h1>
         <Button to="/admin/cases/new" variant="primary" size="sm">
           Novo estudo
         </Button>
@@ -44,24 +44,24 @@ export function AdminCases() {
 
       {status === 'loading' && <LoadingState className="py-16" />}
       {status !== 'loading' && items.length === 0 && (
-        <p className="py-16 text-center text-smoke">Nenhum estudo de caso. Crie o primeiro.</p>
+        <p className="py-16 text-center text-mist">Nenhum estudo de caso. Crie o primeiro.</p>
       )}
 
       {items.length > 0 && (
-        <ul className="mt-6 divide-y divide-mist/40 border border-mist/40">
+        <ul className="mt-6 card-line divide-y divide-graphite-light overflow-hidden">
           {items.map((c) => (
-            <li key={c.id} className="flex items-center justify-between gap-4 p-4">
+            <li key={c.id} className="admin-row">
               <div className="flex min-w-0 items-center gap-4">
                 {c.cover_image_url && (
                   <img
                     src={c.cover_image_url}
                     alt=""
-                    className="h-12 w-20 shrink-0 border border-mist/40 object-cover"
+                    className="h-12 w-20 shrink-0 rounded border border-graphite-light object-cover"
                   />
                 )}
                 <div className="min-w-0">
-                  <p className="truncate font-medium text-ink">{c.title}</p>
-                  <p className="text-xs text-smoke">
+                  <p className="truncate font-medium text-paper">{c.title}</p>
+                  <p className="text-xs text-mist">
                     /cases/{c.slug} · {c.category ?? '—'}
                   </p>
                 </div>
@@ -69,18 +69,14 @@ export function AdminCases() {
               <div className="flex shrink-0 items-center gap-3">
                 <span
                   className={
-                    'px-2 py-1 text-xs ' +
-                    (c.is_published
-                      ? 'border border-success/50 text-success'
-                      : 'border border-mist/60 text-smoke')
+                    'badge ' +
+                    (c.is_published ? 'border-success/50 text-success' : 'border-graphite-light text-mist')
                   }
                 >
                   {c.is_published ? 'Publicado' : 'Rascunho'}
                 </span>
                 {c.featured && (
-                  <span className="border border-brass/50 px-2 py-1 text-xs text-brass">
-                    Destaque
-                  </span>
+                  <span className="badge">Destaque</span>
                 )}
                 <Link
                   to={`/admin/cases/${c.id}`}

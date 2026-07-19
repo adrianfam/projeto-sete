@@ -3,6 +3,8 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { RootLayout } from '@/components/layout/RootLayout'
 import { LoadingState } from '@/components/ui/LoadingState'
 import { Protected } from './routes/Protected'
+import { ColaboradorProtected } from './routes/ColaboradorProtected'
+import { Navigate } from 'react-router-dom'
 
 const Landing = lazy(() => import('@/pages/Landing').then((m) => ({ default: m.Landing })))
 const NotFound = lazy(() => import('@/pages/NotFound').then((m) => ({ default: m.NotFound })))
@@ -13,6 +15,9 @@ const CaseDetail = lazy(() => import('@/pages/CaseDetail').then((m) => ({ defaul
 const SobrePage = lazy(() => import('@/pages/SobrePage').then((m) => ({ default: m.SobrePage })))
 const ContatoPage = lazy(() => import('@/pages/ContatoPage').then((m) => ({ default: m.ContatoPage })))
 const TestimonialsPage = lazy(() => import('@/pages/TestimonialsPage').then((m) => ({ default: m.TestimonialsPage })))
+const PontoLogin = lazy(() => import('@/pages/PontoLogin').then((m) => ({ default: m.PontoLogin })))
+const PontoRegistrar = lazy(() => import('@/pages/PontoRegistrar').then((m) => ({ default: m.PontoRegistrar })))
+const PontoExtrato = lazy(() => import('@/pages/PontoExtrato').then((m) => ({ default: m.PontoExtrato })))
 const PortfolioList = lazy(() => import('@/pages/PortfolioList').then((m) => ({ default: m.PortfolioList })))
 const PortfolioDetail = lazy(() => import('@/pages/PortfolioDetail').then((m) => ({ default: m.PortfolioDetail })))
 
@@ -29,6 +34,12 @@ const AdminInstagram = lazy(() => import('@/pages/admin/AdminInstagram').then((m
 const AdminContact = lazy(() => import('@/pages/admin/AdminContact').then((m) => ({ default: m.AdminContact })))
 const AdminCases = lazy(() => import('@/pages/admin/AdminCases').then((m) => ({ default: m.AdminCases })))
 const CaseStudyEditor = lazy(() => import('@/pages/admin/CaseStudyEditor').then((m) => ({ default: m.CaseStudyEditor })))
+const AdminMedia = lazy(() => import('@/pages/admin/AdminMedia').then((m) => ({ default: m.AdminMedia })))
+const AdminEmployees = lazy(() => import('@/pages/admin/AdminEmployees').then((m) => ({ default: m.AdminEmployees })))
+const AdminTimeRecords = lazy(() => import('@/pages/admin/AdminTimeRecords').then((m) => ({ default: m.AdminTimeRecords })))
+const ColaboradorLayout = lazy(() => import('@/pages/colaborador/ColaboradorLayout').then((m) => ({ default: m.ColaboradorLayout })))
+const ColaboradorPonto = lazy(() => import('@/pages/colaborador/ColaboradorPonto').then((m) => ({ default: m.ColaboradorPonto })))
+const ColaboradorExtrato = lazy(() => import('@/pages/colaborador/ColaboradorExtrato').then((m) => ({ default: m.ColaboradorExtrato })))
 
 const suspense = (el: React.ReactNode) => <Suspense fallback={<LoadingState />}>{el}</Suspense>
 
@@ -46,6 +57,20 @@ export const router = createBrowserRouter([
       { path: '/sobre', element: suspense(<SobrePage />) },
       { path: '/contato', element: suspense(<ContatoPage />) },
       { path: '/testimonials', element: suspense(<TestimonialsPage />) },
+  { path: '/ponto/login', element: suspense(<PontoLogin />) },
+  { path: '/ponto/registrar', element: suspense(<PontoRegistrar />) },
+  { path: '/ponto/extrato', element: suspense(<PontoExtrato />) },
+      { path: '*', element: suspense(<NotFound />) },
+    ],
+  },
+  { path: '/colaborador/login', element: suspense(<PontoLogin />) },
+  {
+    path: '/colaborador',
+    element: <ColaboradorProtected>{suspense(<ColaboradorLayout />)}</ColaboradorProtected>,
+    children: [
+      { index: true, element: <Navigate to="/colaborador/ponto" replace /> },
+      { path: 'ponto', element: suspense(<ColaboradorPonto />) },
+      { path: 'extrato', element: suspense(<ColaboradorExtrato />) },
       { path: '*', element: suspense(<NotFound />) },
     ],
   },
@@ -68,6 +93,9 @@ export const router = createBrowserRouter([
       { path: 'testimonials', element: <Protected>{suspense(<AdminTestimonials />)}</Protected> },
       { path: 'instagram', element: <Protected>{suspense(<AdminInstagram />)}</Protected> },
       { path: 'comments', element: <Protected>{suspense(<AdminComments />)}</Protected> },
+      { path: 'employees', element: <Protected>{suspense(<AdminEmployees />)}</Protected> },
+      { path: 'time-records', element: <Protected>{suspense(<AdminTimeRecords />)}</Protected> },
+      { path: 'media', element: <Protected>{suspense(<AdminMedia />)}</Protected> },
       { path: 'contact', element: <Protected>{suspense(<AdminContact />)}</Protected> },
       { path: '*', element: suspense(<NotFound />) },
     ],

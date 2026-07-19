@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
+import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
   portfolioItemInputSchema,
@@ -17,6 +17,7 @@ import { ApiError } from '@/lib/apiClient'
 type FormValues = PortfolioItemInput
 
 const PROJECT_TYPES = ['residencial', 'comercial', 'corporativo', 'especial'] as const
+const MEDIA_TYPES = ['image', 'video'] as const
 
 function slugify(s: string) {
   return s
@@ -46,6 +47,7 @@ export function PortfolioEditor() {
     reset,
     watch,
     setValue,
+    control,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(
@@ -53,6 +55,8 @@ export function PortfolioEditor() {
     ),
     defaultValues: emptyItem(),
   })
+
+  const { fields, append, remove } = useFieldArray({ control, name: 'media' })
 
   useEffect(() => {
     if (item) reset(item)
@@ -81,7 +85,7 @@ export function PortfolioEditor() {
     <>
       <Seo title="Editar item — Projeto Sete Admin" noindex />
       <div className="flex items-center justify-between">
-        <h1 className="font-serif text-3xl">{isEdit ? 'Editar item' : 'Novo item'}</h1>
+        <h1 className="font-serif text-3xl text-paper">{isEdit ? 'Editar item' : 'Novo item'}</h1>
         <Button to="/admin/portfolio" variant="ghost" size="sm">
           ← Voltar
         </Button>
@@ -126,15 +130,66 @@ export function PortfolioEditor() {
           <Field label="Área (m²)">
             <input type="number" step="0.01" {...register('areaM2', { setValueAs: (v) => (v === '' ? null : Number(v)) })} className="admin-input" />
           </Field>
+
+          {/* Galeria de mídia */}
+          <div>
+            <label className="mb-2 block text-xs uppercase tracking-eyebrow text-mist">
+              Galeria de mídia
+            </label>
+            <div className="space-y-3">
+              {fields.map((field, index) => (
+                <div key={field.id} className="flex items-start gap-3">
+                  <div className="w-20 shrink-0">
+                    <select
+                      {...register(`media.${index}.type`)}
+                      className="w-full border border-mist/60 bg-paper px-2 py-2 text-xs outline-none focus:border-brass"
+                    >
+                      {MEDIA_TYPES.map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex-1">
+                    <MediaUploader
+                      value={watch(`media.${index}.url`)}
+                      onChange={(url) => setValue(`media.${index}.url`, url)}
+                      compact
+                    />
+                  </div>
+                  <div className="w-24 shrink-0">
+                    <input
+                      {...register(`media.${index}.alt`)}
+                      placeholder="Alt"
+                      className="w-full border border-mist/60 bg-paper px-2 py-2 text-xs outline-none focus:border-brass"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => remove(index)}
+                    className="mt-1 shrink-0 text-xs text-error link-underline"
+                  >
+                    Remover
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => append({ type: 'image', url: '', alt: '' })}
+                className="text-sm text-brass link-underline"
+              >
+                + Adicionar mídia
+              </button>
+            </div>
+          </div>
         </div>
 
         <aside className="space-y-6">
-          <div className="card-line bg-cream p-5 space-y-3">
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" {...register('isPublished')} /> Publicar
+          <div className="card-line bg-graphite p-5 space-y-3">
+            <label className="flex items-center gap-2 text-sm text-paper">
+              <input type="checkbox" {...register('isPublished')} className="accent-brass" /> Publicar
             </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" {...register('isFeatured')} /> Destaque
+            <label className="flex items-center gap-2 text-sm text-paper">
+              <input type="checkbox" {...register('isFeatured')} className="accent-brass" /> Destaque
             </label>
           </div>
 

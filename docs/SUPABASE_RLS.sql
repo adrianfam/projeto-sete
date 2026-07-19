@@ -14,6 +14,8 @@ alter table public.comments            enable row level security;
 alter table public.contact_submissions enable row level security;
 alter table public.admin_profiles      enable row level security;
 alter table public.media_assets        enable row level security;
+alter table public.employees            enable row level security;
+alter table public.time_records         enable row level security;
 
 -- ---------------------------------------------------------------------------
 -- Helper: é admin? (auth.uid existe em admin_profiles)
@@ -172,5 +174,22 @@ create policy "admin_update_media_bucket" on storage.objects
 drop policy if exists "admin_delete_media_bucket" on storage.objects;
 create policy "admin_delete_media_bucket" on storage.objects
   for delete using (bucket_id = 'media' and public.is_admin());
+
+-- ---------------------------------------------------------------------------
+-- EMPLOYEES  (admin tudo; funcionário vê apenas a si)
+-- ---------------------------------------------------------------------------
+drop policy if exists "admin_all_employees" on public.employees;
+create policy "admin_all_employees" on public.employees
+  for all using (public.is_admin()) with check (public.is_admin());
+
+-- Funcionário pode consultar apenas o próprio registro (pelo matricula + pin)
+-- A verificação é feita via função security definer na API, não via RLS direta.
+
+-- ---------------------------------------------------------------------------
+-- TIME RECORDS  (admin tudo; funcionário insere apenas o próprio)
+-- ---------------------------------------------------------------------------
+drop policy if exists "admin_all_time_records" on public.time_records;
+create policy "admin_all_time_records" on public.time_records
+  for all using (public.is_admin()) with check (public.is_admin());
 
 -- Fim. Para criar o primeiro admin, veja SUPABASE_SEED.sql.

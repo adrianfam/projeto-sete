@@ -26,10 +26,12 @@ export function MediaUploader({
   value,
   onChange,
   label = 'Imagem',
+  compact = false,
 }: {
   value: string | null | undefined
   onChange: (url: string) => void
   label?: string
+  compact?: boolean
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
@@ -49,15 +51,39 @@ export function MediaUploader({
     }
   }
 
+  if (compact) {
+    return (
+      <div className="flex items-center gap-2">
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => handleFile(e.target.files?.[0])}
+        />
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className="shrink-0 whitespace-nowrap border border-mist/60 px-2 py-1 text-xs hover:border-brass disabled:opacity-50"
+          title={value ? 'Trocar imagem' : 'Fazer upload'}
+        >
+          {uploading ? '…' : value ? 'Trocar' : 'Upload'}
+        </button>
+        {err && <span className="shrink-0 text-xs text-error" title={err}>Erro</span>}
+      </div>
+    )
+  }
+
   return (
     <div>
-      <label className="mb-2 block text-xs uppercase tracking-eyebrow text-smoke">{label}</label>
+      <label className="mb-2 block text-xs uppercase tracking-eyebrow text-mist">{label}</label>
       <div className="flex items-center gap-3">
         {value && (
           <img
             src={value}
             alt=""
-            className="h-16 w-16 shrink-0 border border-mist/60 object-cover"
+            className="h-16 w-16 shrink-0 rounded border border-graphite-light object-cover"
           />
         )}
         <input
@@ -71,19 +97,43 @@ export function MediaUploader({
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
-          className="border border-mist/60 px-3 py-2 text-sm hover:border-brass disabled:opacity-50"
+          className="flex items-center gap-2 rounded border border-graphite-light bg-graphite px-4 py-2 text-sm text-paper transition-colors hover:border-brass hover:bg-brass/10 disabled:opacity-50"
         >
-          {uploading ? 'Enviando…' : value ? 'Trocar imagem' : 'Enviar imagem'}
+          {uploading ? (
+            <>
+              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" strokeDasharray="31.4 31.4" strokeLinecap="round" />
+              </svg>
+              Enviando…
+            </>
+          ) : (
+            <>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              {value ? 'Trocar imagem' : 'Enviar imagem'}
+            </>
+          )}
         </button>
+        {value && (
+          <button
+            type="button"
+            onClick={() => onChange('')}
+            className="text-xs text-error hover:underline"
+            title="Remover imagem"
+          >
+            Remover
+          </button>
+        )}
       </div>
-      <input
-        type="text"
-        value={value ?? ''}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="… ou cole uma URL"
-        className="admin-input mt-2 text-sm"
-      />
-      {err && <p className="mt-1 text-xs text-error">{err}</p>}
+      {err && (
+        <p className="mt-2 text-xs text-error">{err}</p>
+      )}
+      {value && (
+        <p className="mt-1.5 truncate text-[10px] text-mist">
+          {value}
+        </p>
+      )}
     </div>
   )
 }

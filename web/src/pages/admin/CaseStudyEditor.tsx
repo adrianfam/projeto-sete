@@ -83,7 +83,7 @@ export function CaseStudyEditor() {
     <>
       <Seo title="Editar caso — Projeto Sete Admin" noindex />
       <div className="flex items-center justify-between">
-        <h1 className="font-serif text-3xl">{isEdit ? 'Editar estudo de caso' : 'Novo estudo de caso'}</h1>
+        <h1 className="font-serif text-3xl text-paper">{isEdit ? 'Editar estudo de caso' : 'Novo estudo de caso'}</h1>
         <Button to="/admin/cases" variant="ghost" size="sm">
           ← Voltar
         </Button>
@@ -198,10 +198,10 @@ export function CaseStudyEditor() {
               {(watch('gallery') ?? []).map((_, index) => (
                 <div key={index} className="flex items-start gap-3">
                   <div className="flex-1">
-                    <input
-                      {...register(`gallery.${index}.url`)}
-                      placeholder="URL da imagem"
-                      className="w-full border border-mist/60 bg-paper px-3 py-2 text-sm outline-none focus:border-brass"
+                    <MediaUploader
+                      value={watch(`gallery.${index}.url`)}
+                      onChange={(url) => setValue(`gallery.${index}.url`, url)}
+                      compact
                     />
                   </div>
                   <div className="w-24">
@@ -242,12 +242,12 @@ export function CaseStudyEditor() {
 
         {/* Sidebar */}
         <aside className="space-y-6">
-          <div className="card-line bg-cream space-y-3 p-5">
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" {...register('isPublished')} /> Publicar
+          <div className="card-line bg-graphite space-y-3 p-5">
+            <label className="flex items-center gap-2 text-sm text-paper">
+              <input type="checkbox" {...register('isPublished')} className="accent-brass" /> Publicar
             </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" {...register('featured')} /> Destaque
+            <label className="flex items-center gap-2 text-sm text-paper">
+              <input type="checkbox" {...register('featured')} className="accent-brass" /> Destaque
             </label>
           </div>
 
@@ -300,7 +300,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-2 block text-xs uppercase tracking-eyebrow text-smoke">{label}</label>
+      <label className="mb-2 block text-xs uppercase tracking-eyebrow text-mist">{label}</label>
       {children}
       {error && <p className="mt-1 text-xs text-error">{error}</p>}
     </div>

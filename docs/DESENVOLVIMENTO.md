@@ -83,8 +83,9 @@ projeto-sete/
 │  └─ src/{main.tsx,App.tsx,router.tsx,styles,lib,store,providers,hooks,
 │        features,components,pages,routes}/
 └─ api/                           # Fastify → Vercel Serverless
-   ├─ package.json tsconfig.json vercel.json .envrc.example
-   └─ src/{server.ts,index.ts,plugins,lib,routes,schemas}/
+   ├─ handler.ts                    # Entry point Vercel (restaura __path)
+   ├─ package.json tsconfig.json .env.example
+   └─ _src/{server.ts,standalone.ts,plugins,lib,routes}/
 ```
 
 ---
@@ -116,9 +117,13 @@ As DDL completas ficam em `docs/SUPABASE_SCHEMA.sql` e
 - `/portfolio`, `/portfolio/:slug`, `/cases/:slug`
 - `/blog`, `/blog/:slug` (artigo + comentários)
 - `/contato`, `/sobre` (âncoras na landing + rotas próprias)
+- `/ponto/login` — Login do colaborador para ponto eletrônico
+- `/ponto/registrar` — Botão único para bater ponto (com GPS obrigatório)
+- `/ponto/extrato` — Extrato mensal do colaborador (próprios registros)
 - `/admin/login`, `/admin` (layout) → `/admin/dashboard`, `/admin/blog[/new|/:id]`,
   `/admin/portfolio[/new|/:id]`, `/admin/cases[/new|/:id]`, `/admin/testimonials`,
-  `/admin/instagram`, `/admin/comments`, `/admin/contact`
+  `/admin/instagram`, `/admin/comments`, `/admin/contact`, `/admin/media`,
+  `/admin/employees`, `/admin/time-records`
 - `*` NotFound
 
 ### API (Fastify, prefixo `/api`, na Vercel)
@@ -127,10 +132,13 @@ As DDL completas ficam em `docs/SUPABASE_SCHEMA.sql` e
   `GET /portfolio/:slug`, `GET /cases`, `GET /cases/:slug`, `GET /testimonials`,
   `GET /instagram`, `GET /blog` (`?page=&tag=&q=`), `GET /blog/:slug`,
   `POST /blog/:slug/comments` (rate-limited + honeypot), `GET /sitemap.xml`
+- Ponto Eletrônico: `POST /ponto/login`, `GET /ponto/status`, `GET /ponto/records?month=`,
+  `POST /ponto/register`
 - Admin (Bearer JWT verificado com `SUPABASE_JWT_SECRET`): `GET /auth/me`,
   CRUD de `/blog`, `/portfolio`, `/cases`, `/testimonials`, `/instagram`,
   `GET/PATCH/DELETE /admin/comments/:id`, `POST /upload/sign`,
-  `GET /admin/metrics`
+  `GET/PATCH/DELETE /admin/media`, `GET /admin/metrics`, `GET/PATCH/DELETE /admin/employees`,
+  `GET /admin/time-records`, `GET /admin/time-records/daily`
 
 ---
 
@@ -251,6 +259,8 @@ acessível; robots permite público e bloqueia `/admin`.
 - `docs/SUPABASE_SCHEMA.sql` + `docs/SUPABASE_RLS.sql` — modelo de dados.
 - `shared/src/schemas/*.ts` — contratos Zod reaproveitados por API e forms.
 - `web/src/router.tsx` — árvore de rotas pública + admin + boundaries de code-split.
-- `api/src/server.ts` — composição Fastify (cors, rate-limit, supabase-admin,
+- `api/_src/server.ts` — composição Fastify (cors, rate-limit, supabase-admin,
   errorHandler, registro de rotas) exportada pelo adaptador Vercel.
+- `api/handler.ts` — entry point Vercel, restaura __path da query string.
+- `api/_src/standalone.ts` — servidor local para desenvolvimento (tsx watch).
 - `shared/src/constants/brand.ts` — dados da empresa (fonte única).

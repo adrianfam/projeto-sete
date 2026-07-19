@@ -193,47 +193,51 @@
   }
 }
 
-/* === Admin === */
+/* === Admin (Dark Theme) === */
 
-/* Card-base para o admin — faltava esta definição! */
 .card-line {
-  @apply border border-mist/30 rounded-lg;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  @apply border border-graphite-light/80 rounded-lg;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 
-/* Admin select options — dropdown nativo (Chrome/Edge) */
-.bg-cream select option {
-  color: #0A0B0D;
-  background: #F5F2ED;
+/* Admin select options — dropdown nativo */
+select option {
+  color: #F5F2ED;
+  background: #1C1E22;
 }
 
 /* Admin filter tabs */
 .admin-tab {
-  @apply border border-mist/30 px-3 py-1.5 text-sm transition-colors;
+  @apply border border-graphite-light px-3 py-1.5 text-sm transition-colors rounded-md;
 }
 .admin-tab-active {
   @apply border-brass bg-brass text-charcoal font-medium;
 }
 .admin-tab:not(.admin-tab-active) {
-  @apply text-smoke hover:border-mist/60 hover:text-ink;
+  @apply text-mist hover:border-smoke hover:text-paper;
 }
 
 /* Admin form input padrão */
 .admin-input {
-  @apply w-full rounded-lg border border-mist/30 bg-paper text-ink px-4 py-2.5 outline-none;
+  @apply w-full rounded-lg border border-graphite-light bg-graphite text-paper px-4 py-2.5 outline-none placeholder-mist/50;
   @apply transition-all duration-200;
   @apply focus:border-brass focus:ring-2 focus:ring-brass/20;
 }
 
+/* Admin textarea específico */
+textarea.admin-input {
+  @apply bg-graphite text-paper;
+}
+
 /* Admin table row */
 .admin-row {
-  @apply flex items-center justify-between gap-4 p-4 transition-colors hover:bg-brass/[0.04];
+  @apply flex items-center justify-between gap-4 p-4 transition-colors hover:bg-graphite-light/50;
 }
 
 /* Botão outline pequeno (p/ links tipo "Responder" no admin) */
 .btn-outline-sm {
-  @apply inline-flex items-center justify-center gap-2 rounded-lg border border-brass/40 px-3 py-1.5 text-sm text-brass;
-  @apply transition-all duration-200 hover:bg-brass hover:text-charcoal hover:border-brass;
+  @apply inline-flex items-center justify-center gap-2 rounded-lg border border-brass/50 px-3 py-1.5 text-sm text-brass-soft;
+  @apply transition-all duration-200 hover:bg-brass/20 hover:text-brass-soft hover:border-brass;
 }
 
 /* Reduced motion */

@@ -20,7 +20,16 @@ export const adminNavItems = [
   { label: 'Depoimentos', href: '/admin/testimonials', icon: 'testimonials' },
   { label: 'Instagram', href: '/admin/instagram', icon: 'instagram' },
   { label: 'Comentários', href: '/admin/comments', icon: 'comments' },
+  { label: 'Colaboradores', href: '/admin/employees', icon: 'users' },
+  { label: 'Pontos', href: '/admin/time-records', icon: 'clock' },
+  { label: 'Mídia', href: '/admin/media', icon: 'media' },
   { label: 'Atendimento', href: '/admin/contact', icon: 'contact' },
+] as const
+
+/** Itens do menu do colaborador. */
+export const colaboradorNavItems = [
+  { label: 'Registrar Ponto', href: '/colaborador/ponto', icon: 'clock' },
+  { label: 'Meu Extrato', href: '/colaborador/extrato', icon: 'file' },
 ] as const
 
 export const footerYear = new Date().getFullYear()
