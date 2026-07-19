@@ -95,14 +95,19 @@ projeto-sete/
 Tabelas: `portfolio_categories`, `portfolio_items`, `case_studies`,
 `testimonials`, `instagram_posts`, `blog_posts`, `comments`,
 `contact_submissions`, `admin_profiles` (1:1 com `auth.users`),
-`media_assets`. UUIDs, `timestamptz`, soft-delete via `deleted_at`.
+`media_assets`, `employees` (colaboradores internos), `time_records`
+(registros de ponto com GPS). UUIDs, `timestamptz`, soft-delete via
+`deleted_at`.
 
 **RLS (resumo):** leitura pública onde `is_published = true`; `comments`
 com `INSERT` anônimo + leitura só das `approved`; `contact_submissions`
 com `INSERT` anônimo apenas; admin (`auth.uid()` em `admin_profiles`) tem
-CRUD total; buckets de Storage com leitura pública e escrita só via
-service-role (chave **nunca** exposta ao frontend — uploads passam por
-`/api/upload/sign`, que devolve uma URL assinada para PUT direto).
+CRUD total; `employees` e `time_records` com acesso total do admin via
+service-role (colaborador não usa RLS — autentica via matrícula + PIN
+com validação via função `security definer` na API); buckets de Storage
+com leitura pública e escrita só via service-role (chave **nunca** exposta
+ao frontend — uploads passam por `/api/upload/sign`, que devolve uma URL
+assinada para PUT direto).
 
 As DDL completas ficam em `docs/SUPABASE_SCHEMA.sql` e
 `docs/SUPABASE_RLS.sql`.
@@ -117,9 +122,10 @@ As DDL completas ficam em `docs/SUPABASE_SCHEMA.sql` e
 - `/portfolio`, `/portfolio/:slug`, `/cases/:slug`
 - `/blog`, `/blog/:slug` (artigo + comentários)
 - `/contato`, `/sobre` (âncoras na landing + rotas próprias)
-- `/ponto/login` — Login do colaborador para ponto eletrônico
-- `/ponto/registrar` — Botão único para bater ponto (com GPS obrigatório)
-- `/ponto/extrato` — Extrato mensal do colaborador (próprios registros)
+- `/colaborador/login` — Login do colaborador para ponto eletrônico
+- `/colaborador/ponto` — Registrar ponto com combo seletor manual (entrada/almoco/saida)
+  + timeline visual + GPS obrigatório
+- `/colaborador/extrato` — Extrato mensal do colaborador (próprios registros)
 - `/admin/login`, `/admin` (layout) → `/admin/dashboard`, `/admin/blog[/new|/:id]`,
   `/admin/portfolio[/new|/:id]`, `/admin/cases[/new|/:id]`, `/admin/testimonials`,
   `/admin/instagram`, `/admin/comments`, `/admin/contact`, `/admin/media`,
@@ -132,12 +138,13 @@ As DDL completas ficam em `docs/SUPABASE_SCHEMA.sql` e
   `GET /portfolio/:slug`, `GET /cases`, `GET /cases/:slug`, `GET /testimonials`,
   `GET /instagram`, `GET /blog` (`?page=&tag=&q=`), `GET /blog/:slug`,
   `POST /blog/:slug/comments` (rate-limited + honeypot), `GET /sitemap.xml`
-- Ponto Eletrônico: `POST /ponto/login`, `GET /ponto/status`, `GET /ponto/records?month=`,
-  `POST /ponto/register`
+- Ponto Eletrônico: `POST /ponto/login` (matrícula + PIN),
+  `GET /ponto/status` (badge + label), `GET /ponto/records?month=` (extrato),
+  `POST /ponto/register` (GPS + anti-duplicata 30s, sem ordem obrigatória)
 - Admin (Bearer JWT verificado com `SUPABASE_JWT_SECRET`): `GET /auth/me`,
   CRUD de `/blog`, `/portfolio`, `/cases`, `/testimonials`, `/instagram`,
-  `GET/PATCH/DELETE /admin/comments/:id`, `POST /upload/sign`,
-  `GET/PATCH/DELETE /admin/media`, `GET /admin/metrics`, `GET/PATCH/DELETE /admin/employees`,
+  `GET/PATCH/DELETE /admin/comments/:id`, `POST /upload/sign` (registra em media_assets),
+  `GET/DELETE /admin/media`, `GET /admin/metrics`, `GET/POST/PATCH /admin/employees`,
   `GET /admin/time-records`, `GET /admin/time-records/daily`
 
 ---
@@ -183,6 +190,22 @@ dinâmico via API; `robots.txt` libera tudo, bloqueia `/admin`.
 - `web/vercel.json` + `api/vercel.json` (rewrite `/api/*` → adaptador Fastify).
 - `.env.example` (Supabase URL/keys, JWT secret, Maps, WhatsApp, SMTP/Resend, MAIL_FROM, ADMIN_NOTIFY_EMAIL) — chaves reais **nunca** commitadas.
 - `.github/workflows/ci.yml`: lint, typecheck, test, build.
+
+---
+
+### Colaborador/Ponto (adicional, teoricamente fora das fases)
+
+O módulo de ponto eletrônico opera independentemente do CMS principal:
+- Colaborador não tem acesso ao admin — usa ambiente próprio em `/colaborador/*`
+- Login via **matrícula + PIN de 4 dígitos** (hash SHA-256 armazenado)
+- Rate limit: 5 tentativas falhas bloqueiam 30 min + delay progressivo
+- Registro com **GPS obrigatório** (latitude/longitude do navegador)
+- **4 tipos de registro**: entrada, entrada almoço, retorno almoço, saída
+- **Sem ordem obrigatória** — colaborador pode registrar qualquer tipo a qualquer
+  momento (apenas proteção anti-duplicata de 30s + primeiro registro deve ser entrada)
+- **Hora extra**: após registrar saída, pode iniciar novo ciclo entrada → saída
+- Admin gerencia colaboradores (CRUD) e visualiza registros (timeline, extrato)
+- Tema escuro consistente com o admin em todo o ambiente do colaborador
 
 ---
 

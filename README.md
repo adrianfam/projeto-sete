@@ -1,6 +1,14 @@
 # Projeto Sete — Móveis Planejados e Marcenaria
 
-Site institucional + CMS administrativo para a **Projeto Sete**, marcenaria de alto padrão de Fortaleza.
+Site institucional + CMS administrativo + Ponto Eletrônico para a **Projeto Sete**,
+marcenaria de alto padrão de Fortaleza.
+
+## Features
+- **Landing page** cinematográfica com hero, portfólio, cases, depoimentos, blog, contato
+- **CMS Admin** completo (blog, portfólio, cases, instagram, comentários, contato)
+- **Ponto Eletrônico** — colaboradores registram entrada/almoco/saída com GPS
+- **Upload de imagens** via signed URL direto no Supabase Storage
+- **Tema escuro** em todo o ambiente administrativo
 
 ## Stack
 - **Frontend:** Vite + React 18 + TypeScript + Tailwind CSS + Framer Motion
@@ -17,8 +25,11 @@ projeto-sete/
 └─ docs/    # SQL do Supabase + guias
 ```
 
-## Próximos passos
-Veja **[docs/INSTALL.md](docs/INSTALL.md)** para instalação local e **[docs/DEPLOY.md](docs/DEPLOY.md)** para deploy na Vercel. O mapeamento de rotas está em **[docs/ROUTE_MAP.md](docs/ROUTE_MAP.md)**.
+## Documentação
+- **[docs/INSTALL.md](docs/INSTALL.md)** — Instalação local
+- **[docs/DEPLOY.md](docs/DEPLOY.md)** — Deploy na Vercel
+- **[docs/ROUTE_MAP.md](docs/ROUTE_MAP.md)** — Mapa completo de rotas
+- **[docs/DESENVOLVIMENTO.md](docs/DESENVOLVIMENTO.md)** — Documentação técnica
 
 ## Scripts principais (raiz)
 ```bash

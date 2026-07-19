@@ -14,7 +14,9 @@ Estratégia: **um único projeto Vercel** na raiz do repositório. O `web/` gera
    - `RESEND_API_KEY` (ou SMTP_*), `MAIL_FROM`, `ADMIN_NOTIFY_EMAIL`
    - `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_BASE=/api`, `VITE_SITE_URL`
    - `VITE_GOOGLE_MAPS_API_KEY`, `WHATSAPP_NUMBER`
-5. **Deploy**. As Functions em `api/api/[[...route]].ts` ficam expostas em `/api/*`.
+   - `VITE_API_BASE` deve ser `/api` (proxy da Vercel)
+5. **Deploy**. A Serverless Function em `api/handler.ts` atende `/api/*`
+   (os rewrites no `vercel.json` da raiz restauram o `__path` da query string).
 
 ## Domínio
 Em **Settings → Domains** adicione `projetosete.com.br` (e `www`). Atualize DNS no registrador. SSL é automático. Após apontar o domínio, ajuste `APP_URL` e `VITE_SITE_URL` para `https://projetosete.com.br`.

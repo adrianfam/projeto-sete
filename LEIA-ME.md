@@ -18,6 +18,19 @@ Este documento é para a equipe. Para detalhes técnicos, veja `docs/`.
    - **Instagram** — inserir imagens da galeria manual (link do post + imagem).
    - **Comentários** — aprovar, rejeitar ou marcar como spam comentários do blog.
    - **Atendimento** — ler mensagens do formulário de contato e responder.
+   - **Colaboradores** — cadastrar funcionários para acesso ao ponto eletrônico.
+   - **Registros de Ponto** — visualizar histórico e resumo diário dos colaboradores.
+   - **Mídia** — gerenciar arquivos enviados (upload ledger).
+
+## Ponto Eletrônico — Colaboradores
+
+Os funcionários acessam o sistema de ponto pelo link `/colaborador/login`:
+- **Login** com matrícula + PIN de 4 dígitos (fornecido pelo administrador)
+- **Registrar Ponto** — escolhe o tipo no combo (Entrada, Almoço, Retorno, Saída)
+  e clica em Registrar (GPS obrigatório)
+- **Meu Extrato** — visualiza o histórico mensal dos próprios registros
+- O sistema **não obriga ordem** — o colaborador registra o que precisa
+- **Hora extra**: funciona registrando uma nova Entrada após a Saída
 
 ## Onde Editar as Informações da Empresa
 

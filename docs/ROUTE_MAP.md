@@ -22,7 +22,12 @@ Layout raiz: `RootLayout` (Navbar + Footer + WhatsAppFloat).
 | `/sobre` | `SobrePage` | Sobre a empresa |
 | `/contato` | `ContatoPage` | Formulário de contato + info |
 | `/testimonials` | `TestimonialsPage` | Depoimentos completos |
+| `/colaborador/login` | `PontoLogin` | Login do colaborador (matrícula + PIN) |
+| `/colaborador/ponto` | `ColaboradorPonto` | Registrar ponto com combo seletor (entrada/almoco/saida) + timeline + GPS |
+| `/colaborador/extrato` | `ColaboradorExtrato` | Extrato mensal dos próprios registros |
 | `*` | `NotFound` | Página 404 |
+
+> Rotas legadas (redirecionam para `/colaborador/*`): `/ponto/login`, `/ponto/registrar`, `/ponto/extrato`
 
 ### Admin (protegido por `<Protected>` — redireciona para /admin/login se não autenticado)
 
@@ -43,6 +48,9 @@ Layout raiz: `RootLayout` (Navbar + Footer + WhatsAppFloat).
 | `/admin/instagram` | `AdminInstagram` | Galeria manual do Instagram |
 | `/admin/comments` | `AdminComments` | Moderação de comentários (pending/approved/rejected/spam) |
 | `/admin/contact` | `AdminContact` | Caixa de entrada do formulário de contato |
+| `/admin/media` | `AdminMedia` | Gerenciamento de assets de mídia (upload ledger) |
+| `/admin/employees` | `AdminEmployees` | CRUD de colaboradores (ponto eletrônico) |
+| `/admin/time-records` | `AdminTimeRecords` | Histórico de registros de ponto com timeline visual e resumo diário |
 | `*` | `NotFound` | 404 no admin |
 
 ---
@@ -65,6 +73,10 @@ Layout raiz: `RootLayout` (Navbar + Footer + WhatsAppFloat).
 | `POST` | `/blog/:slug/comments` | — | Enviar comentário (honeypot, rate-limit 3/10min) |
 | `POST` | `/contact` | — | Formulário de contato (honeypot, rate-limit 5/10min) |
 | `GET` | `/sitemap.xml` | — | Sitemap dinâmico |
+| `POST` | `/ponto/login` | — | Login do colaborador (matrícula + PIN, rate-limit 5/15min) |
+| `GET` | `/ponto/status` | `Authorization: Bearer {employeeId}` | Status atual do colaborador (badge + label) |
+| `GET` | `/ponto/records` | `?month=2026-07` | Extrato mensal de registros do colaborador |
+| `POST` | `/ponto/register` | `x-employee-id` header | Registrar ponto (GPS obrigatório, anti-duplicata 30s) |
 
 ### Admin (Bearer JWT — `requireAdmin`)
 
@@ -83,7 +95,14 @@ Layout raiz: `RootLayout` (Navbar + Footer + WhatsAppFloat).
 | `POST/PATCH/DELETE` | `/testimonials/:id` | CRUD depoimentos |
 | `POST/PATCH/DELETE` | `/instagram/:id` | CRUD posts do Instagram |
 | `GET/PATCH/DELETE` | `/admin/comments/:id` | Moderação de comentários |
-| `POST` | `/upload/sign` | URL assinada para upload de imagem |
+| `POST` | `/upload/sign` | URL assinada para upload de imagem (registra em media_assets) |
+| `GET` | `/admin/metrics` | Métricas do dashboard (KPIs) |
+| `GET/POST` | `/admin/employees` | CRUD de colaboradores (gera PIN) |
+| `GET/PATCH` | `/admin/employees/:id` | Atualizar/resetar PIN de colaborador |
+| `GET` | `/admin/time-records` | `?employee_id=&date_from=&date_to=` | Histórico de registros de ponto |
+| `GET` | `/admin/time-records/daily` | Registros do dia atual (dashboard) |
+| `GET` | `/admin/media` | Lista de assets de mídia (ledger) |
+| `DELETE` | `/admin/media/:id` | Deletar asset (storage + ledger) |
 
 ---
 
@@ -101,6 +120,8 @@ Layout raiz: `RootLayout` (Navbar + Footer + WhatsAppFloat).
 | `contact_submissions` | Mensagens do formulário de contato |
 | `admin_profiles` | Perfis de administradores (1:1 com auth.users) |
 | `media_assets` | Ledger de uploads (opcional) |
+| `employees` | Colaboradores internos (ponto eletrônico) |
+| `time_records` | Registros de ponto (entrada, almoço, saída com GPS) |
 
 DDL completa em: `docs/SUPABASE_SCHEMA.sql` + `docs/SUPABASE_RLS.sql`
 
@@ -113,7 +134,8 @@ Bucket público `media`: leitura pública, escrita via service-role.
 Fluxo:
 1. Frontend → `POST /api/upload/sign` (autenticado) → recebe `signedUrl` + `publicUrl`
 2. Frontend → `PUT signedUrl` com o arquivo (upload direto no Storage)
-3. Frontend salva `publicUrl` no banco
+3. Backend registra automaticamente o asset na tabela `media_assets` (path, bucket, url, mime_type, uploaded_by)
+4. Frontend salva `publicUrl` no formulário
 
 Implementado em: `web/src/components/admin/MediaUploader.tsx`
-API: `api/_src/routes/upload.ts`
+API: `api/_src/routes/upload.ts` / `api/_src/routes/admin.ts` (GET/DELETE media)
