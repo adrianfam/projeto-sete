@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Seo } from '@/components/seo/Seo'
 import { request, ApiError } from '@/lib/apiClient'
+import { InstallPrompt } from '@/components/pwa/InstallPrompt'
 
 interface LoginResponse {
   employee: { id: string; fullName: string; matricula: number }
@@ -102,6 +103,8 @@ export function PontoLogin() {
           <p className="mt-8 text-sm text-smoke">
             Área restrita para colaboradores
           </p>
+
+          <InstallPrompt variant="light" className="mt-5" />
         </div>
       </div>
     </>

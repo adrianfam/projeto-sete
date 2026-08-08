@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Seo } from '@/components/seo/Seo'
 import { ApiError } from '@/lib/apiClient'
 import { pontoRequest } from '@/lib/pontoClient'
+import { getUserPosition, GeoError } from '@/lib/geo'
 
 type StatusType = 'not_started' | 'working' | 'lunch' | 'back_from_lunch' | 'finished' | 'overtime'
 type RecordType = 'entrada' | 'almoco_ida' | 'almoco_volta' | 'saida'
@@ -92,8 +93,8 @@ export function ColaboradorPonto() {
     }
   }
 
-  // Captura localização e registra ponto
-  const register = () => {
+  // Captura localização e registra ponto (nunca trava: watchdog + fallback de precisão)
+  const register = async () => {
     setError(null)
     setSuccess(null)
     setLocationDenied(false)
@@ -104,45 +105,41 @@ export function ColaboradorPonto() {
     }
 
     setRegistering(true)
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const empId = sessionStorage.getItem('ponto_employee_id')
-        if (!empId) return
-        try {
-          await pontoRequest('/ponto/register', {
-            method: 'POST',
-            body: {
-              employeeId: empId,
-              recordType: selectedType,
-              latitude: pos.coords.latitude,
-              longitude: pos.coords.longitude,
-            },
-          }, empId)
+    try {
+      const pos = await getUserPosition()
+      const empId = sessionStorage.getItem('ponto_employee_id')
+      if (!empId) {
+        navigate('/colaborador/login', { replace: true })
+        return
+      }
 
-          const optionLabel = RECORD_OPTIONS.find(o => o.value === selectedType)?.label ?? selectedType
-          setSuccess(`${optionLabel} registrada com sucesso! ✅`)
-          setRegistering(false)
-          enviarNotificacao(optionLabel)
-          // Recarrega status e auto-select
-          await fetchStatus(false)
-        } catch (err) {
-          setError(err instanceof ApiError ? err.message : 'Erro ao registrar.')
-          setRegistering(false)
-        }
-      },
-      (err) => {
-        setRegistering(false)
-        if (err.code === err.PERMISSION_DENIED) {
-          setLocationDenied(true)
-          setError(
-            'Para registrar o ponto, precisamos da sua localização. Ative o GPS nas configurações do seu celular e tente novamente.',
-          )
-        } else {
-          setError('Não foi possível pegar a localização. Tente novamente em um local aberto.')
-        }
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
-    )
+      await pontoRequest('/ponto/register', {
+        method: 'POST',
+        body: {
+          employeeId: empId,
+          recordType: selectedType,
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        },
+      }, empId)
+
+      const optionLabel = RECORD_OPTIONS.find(o => o.value === selectedType)?.label ?? selectedType
+      setSuccess(`${optionLabel} registrada com sucesso! ✅`)
+      enviarNotificacao(optionLabel)
+      // Recarrega status e auto-select
+      await fetchStatus(false)
+    } catch (err) {
+      if (err instanceof GeoError && err.kind === 'denied') {
+        setLocationDenied(true)
+        setError(err.message)
+      } else if (err instanceof GeoError) {
+        setError(err.message)
+      } else {
+        setError(err instanceof ApiError ? err.message : 'Erro ao registrar.')
+      }
+    } finally {
+      setRegistering(false)
+    }
   }
 
   if (loading) {

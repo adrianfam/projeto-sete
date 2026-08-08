@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Seo } from '@/components/seo/Seo'
 import { ApiError } from '@/lib/apiClient'
 import { pontoRequest } from '@/lib/pontoClient'
+import { getUserPosition, GeoError } from '@/lib/geo'
 
 /** Notificação simples via Browser Notification API. */
 function enviarNotificacao(acao: string) {
@@ -84,8 +85,8 @@ export function PontoRegistrar() {
     fetchStatus()
   }, [fetchStatus])
 
-  // Captura localização e registra ponto
-  const register = () => {
+  // Captura localização e registra ponto (nunca trava: watchdog + fallback de precisão)
+  const register = async () => {
     setError(null)
     setSuccess(null)
     setLocationDenied(false)
@@ -96,48 +97,44 @@ export function PontoRegistrar() {
     }
 
     setRegistering(true)
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const empId = sessionStorage.getItem('ponto_employee_id')
-        if (!empId) return
-        try {
-          await pontoRequest('/ponto/register', {
-            method: 'POST',
-            body: {
-              employeeId: empId,
-              recordType: status?.status === 'not_started' ? 'entrada'
-                : status?.status === 'working' ? 'almoco_ida'
-                : status?.status === 'lunch' ? 'almoco_volta'
-                : 'saida',
-              latitude: pos.coords.latitude,
-              longitude: pos.coords.longitude,
-            },
-          }, empId)
-          setSuccess('Ponto registrado com sucesso! ✅')
-          setLastRecord(status?.label ?? '')
-          setRegistering(false)
-          // Notificação push (Browser Notification API)
-          enviarNotificacao(status?.label ?? 'Ponto registrado')
-          // Atualiza status
-          fetchStatus()
-        } catch (err) {
-          setError(err instanceof ApiError ? err.message : 'Erro ao registrar.')
-          setRegistering(false)
-        }
-      },
-      (err) => {
-        setRegistering(false)
-        if (err.code === err.PERMISSION_DENIED) {
-          setLocationDenied(true)
-          setError(
-            'Para registrar o ponto, precisamos da sua localização. Ative o GPS nas configurações do seu celular e tente novamente.',
-          )
-        } else {
-          setError('Não foi possível pegar a localização. Tente novamente em um local aberto.')
-        }
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
-    )
+    try {
+      const pos = await getUserPosition()
+      const empId = sessionStorage.getItem('ponto_employee_id')
+      if (!empId) {
+        navigate('/ponto/login', { replace: true })
+        return
+      }
+
+      await pontoRequest('/ponto/register', {
+        method: 'POST',
+        body: {
+          employeeId: empId,
+          recordType: status?.status === 'not_started' ? 'entrada'
+            : status?.status === 'working' ? 'almoco_ida'
+            : status?.status === 'lunch' ? 'almoco_volta'
+            : 'saida',
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        },
+      }, empId)
+      setSuccess('Ponto registrado com sucesso! ✅')
+      setLastRecord(status?.label ?? '')
+      // Notificação push (Browser Notification API)
+      enviarNotificacao(status?.label ?? 'Ponto registrado')
+      // Atualiza status
+      fetchStatus()
+    } catch (err) {
+      if (err instanceof GeoError && err.kind === 'denied') {
+        setLocationDenied(true)
+        setError(err.message)
+      } else if (err instanceof GeoError) {
+        setError(err.message)
+      } else {
+        setError(err instanceof ApiError ? err.message : 'Erro ao registrar.')
+      }
+    } finally {
+      setRegistering(false)
+    }
   }
 
   const logout = () => {

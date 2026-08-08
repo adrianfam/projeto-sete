@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { colaboradorNavItems } from '@projeto-sete/shared'
 import { cn } from '@/lib/utils'
+import { InstallPrompt } from '@/components/pwa/InstallPrompt'
 import { useState, useEffect } from 'react'
 
 const icons: Record<string, JSX.Element> = {
@@ -107,8 +108,9 @@ export function ColaboradorLayout() {
           ))}
         </nav>
 
-        {/* Sign out */}
-        <div className="border-t border-graphite-light px-6 py-4">
+        {/* Instalar app + Sign out */}
+        <div className="space-y-3 border-t border-graphite-light px-6 py-4">
+          <InstallPrompt />
           <button
             onClick={logout}
             className="flex items-center gap-2 text-sm text-mist hover:text-red-400 transition-colors"
@@ -123,8 +125,8 @@ export function ColaboradorLayout() {
 
       {/* Main content */}
       <main className="md:pl-64">
-        {/* Mobile top bar */}
-        <div className="flex items-center gap-3 border-b border-graphite-light bg-ink/80 backdrop-blur-sm px-4 py-3 md:hidden">
+        {/* Mobile top bar (pt-safe-area para PWA instalado no iPhone com notch) */}
+        <div className="flex items-center gap-3 border-b border-graphite-light bg-ink/80 backdrop-blur-sm px-4 pt-[env(safe-area-inset-top)] pb-3 md:hidden">
           <button
             onClick={() => setMobileOpen(true)}
             className="text-mist hover:text-paper"
@@ -137,12 +139,15 @@ export function ColaboradorLayout() {
           <p className="font-serif text-base text-paper">
             Projeto <span className="text-brass">Sete</span>
           </p>
-          {employee && (
-            <span className="ml-auto text-xs text-mist truncate">{employee.fullName}</span>
-          )}
+          <div className="ml-auto flex min-w-0 items-center gap-2">
+            {employee && (
+              <span className="truncate text-xs text-mist">{employee.fullName}</span>
+            )}
+            <InstallPrompt compact className="shrink-0" />
+          </div>
         </div>
 
-        <div className="px-5 py-8 md:px-10 md:py-10">
+        <div className="px-5 pt-8 pb-[max(2rem,env(safe-area-inset-bottom))] md:px-10 md:py-10">
           <Outlet />
         </div>
       </main>

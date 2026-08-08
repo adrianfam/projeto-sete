@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1C1E22" />
+      <stop offset="1" stop-color="#0A0B0D" />
+    </linearGradient>
+    <linearGradient id="brass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#D4A96A" />
+      <stop offset="1" stop-color="#B8863C" />
+    </linearGradient>
+  </defs>
+  <!-- Fundo sem bordas arredondadas (full-bleed): necessário para o formato maskable -->
+  <rect width="512" height="512" fill="url(#bg)" />
+  <!-- Glifo dentro da zona segura (círculo central de 80%) -->
+  <text x="256" y="278" text-anchor="middle" dominant-baseline="middle"
+    font-family="Georgia, 'Times New Roman', serif" font-size="240" font-weight="700" fill="url(#brass)">7</text>
+</svg>
