@@ -9,6 +9,7 @@ export const navItems = [
   { label: 'Depoimentos', href: '/testimonials' },
   { label: 'Blog', href: '/blog' },
   { label: 'Contato', href: '/contato' },
+  { label: 'Área do Cliente', href: '/cliente' },
 ] as const
 
 /** Itens do menu do admin. */
@@ -23,6 +24,8 @@ export const adminNavItems = [
   { label: 'Colaboradores', href: '/admin/employees', icon: 'users' },
   { label: 'Pontos', href: '/admin/time-records', icon: 'clock' },
   { label: 'Mídia', href: '/admin/media', icon: 'media' },
+  { label: 'Clientes', href: '/admin/clients', icon: 'users' },
+  { label: 'Projetos', href: '/admin/projects', icon: 'folder' },
   { label: 'Atendimento', href: '/admin/contact', icon: 'contact' },
 ] as const
 

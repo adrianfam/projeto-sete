@@ -4,6 +4,7 @@ import { RootLayout } from '@/components/layout/RootLayout'
 import { LoadingState } from '@/components/ui/LoadingState'
 import { Protected } from './routes/Protected'
 import { ColaboradorProtected } from './routes/ColaboradorProtected'
+import { ClienteProtected } from './routes/ClienteProtected'
 import { Navigate } from 'react-router-dom'
 
 const Landing = lazy(() => import('@/pages/Landing').then((m) => ({ default: m.Landing })))
@@ -37,9 +38,16 @@ const CaseStudyEditor = lazy(() => import('@/pages/admin/CaseStudyEditor').then(
 const AdminMedia = lazy(() => import('@/pages/admin/AdminMedia').then((m) => ({ default: m.AdminMedia })))
 const AdminEmployees = lazy(() => import('@/pages/admin/AdminEmployees').then((m) => ({ default: m.AdminEmployees })))
 const AdminTimeRecords = lazy(() => import('@/pages/admin/AdminTimeRecords').then((m) => ({ default: m.AdminTimeRecords })))
+const AdminClients = lazy(() => import('@/pages/admin/AdminClients').then((m) => ({ default: m.AdminClients })))
+const AdminProjects = lazy(() => import('@/pages/admin/AdminProjects').then((m) => ({ default: m.AdminProjects })))
 const ColaboradorLayout = lazy(() => import('@/pages/colaborador/ColaboradorLayout').then((m) => ({ default: m.ColaboradorLayout })))
 const ColaboradorPonto = lazy(() => import('@/pages/colaborador/ColaboradorPonto').then((m) => ({ default: m.ColaboradorPonto })))
 const ColaboradorExtrato = lazy(() => import('@/pages/colaborador/ColaboradorExtrato').then((m) => ({ default: m.ColaboradorExtrato })))
+
+const ClienteLogin = lazy(() => import('@/pages/cliente/ClienteLogin').then((m) => ({ default: m.ClienteLogin })))
+const ClienteSignup = lazy(() => import('@/pages/cliente/ClienteSignup').then((m) => ({ default: m.ClienteSignup })))
+const ClienteLayout = lazy(() => import('@/pages/cliente/ClienteLayout').then((m) => ({ default: m.ClienteLayout })))
+const ClienteHub = lazy(() => import('@/pages/cliente/ClienteHub').then((m) => ({ default: m.ClienteHub })))
 
 const suspense = (el: React.ReactNode) => <Suspense fallback={<LoadingState />}>{el}</Suspense>
 
@@ -74,6 +82,16 @@ export const router = createBrowserRouter([
       { path: '*', element: suspense(<NotFound />) },
     ],
   },
+  { path: '/cliente/login', element: suspense(<ClienteLogin />) },
+  { path: '/cliente/cadastro', element: suspense(<ClienteSignup />) },
+  {
+    path: '/cliente',
+    element: <ClienteProtected>{suspense(<ClienteLayout />)}</ClienteProtected>,
+    children: [
+      { index: true, element: suspense(<ClienteHub />) },
+      { path: '*', element: suspense(<NotFound />) },
+    ],
+  },
   { path: '/admin/login', element: suspense(<AdminLogin />) },
   {
     path: '/admin',
@@ -95,6 +113,8 @@ export const router = createBrowserRouter([
       { path: 'comments', element: <Protected>{suspense(<AdminComments />)}</Protected> },
       { path: 'employees', element: <Protected>{suspense(<AdminEmployees />)}</Protected> },
       { path: 'time-records', element: <Protected>{suspense(<AdminTimeRecords />)}</Protected> },
+      { path: 'clients', element: <Protected>{suspense(<AdminClients />)}</Protected> },
+      { path: 'projects', element: <Protected>{suspense(<AdminProjects />)}</Protected> },
       { path: 'media', element: <Protected>{suspense(<AdminMedia />)}</Protected> },
       { path: 'contact', element: <Protected>{suspense(<AdminContact />)}</Protected> },
       { path: '*', element: suspense(<NotFound />) },

@@ -15,6 +15,8 @@ import { contactRoutes } from './routes/contact'
 import { uploadRoutes } from './routes/upload'
 import { sitemapRoutes } from './routes/sitemap'
 import { adminRoutes } from './routes/admin'
+import { adminClientRoutes } from './routes/adminClient'
+import { clienteRoutes } from './routes/cliente'
 import { pontoRoutes } from './routes/ponto'
 
 /** Constroi a instância Fastify (reutilizada por dev e pelo adapter Vercel). */
@@ -43,6 +45,8 @@ export async function buildServer(): Promise<FastifyInstance> {
       await api.register(uploadRoutes)
       await api.register(sitemapRoutes)
       await api.register(adminRoutes)
+      await api.register(adminClientRoutes)
+      await api.register(clienteRoutes)
       await api.register(pontoRoutes)
     },
     { prefix: '/api' },
