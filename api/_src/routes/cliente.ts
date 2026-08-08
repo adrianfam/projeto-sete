@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify'
 import { getSupabaseAdmin } from '../lib/supabaseAdmin'
 import { authedGuard, clientGuard, type AuthedSession, type ClientSession } from '../lib/clientAuth'
 import { clientProfileSchema, clientInspirationSchema } from '@projeto-sete/shared'
+import { sendWelcomeEmail } from '../lib/clientEmails'
 
 type Sb = ReturnType<typeof getSupabaseAdmin>
 
@@ -62,6 +63,8 @@ export const clienteRoutes: FastifyPluginAsync = async (app) => {
       const { data, error } = await sb.from('clients').insert(payload).select().single()
       if (error) return reply.code(500).send({ message: error.message })
       profile = data
+      // E-mail transacional: boas-vindas no primeiro cadastro
+      sendWelcomeEmail(profile as { email?: string | null; full_name?: string | null; prefer_messages?: boolean | null })
     }
     return { profile }
   })

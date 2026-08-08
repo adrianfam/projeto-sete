@@ -171,6 +171,24 @@ export function AdminClients() {
     refetch()
   }
 
+  const [sendingAccessId, setSendingAccessId] = useState<string | null>(null)
+  const [accessMsg, setAccessMsg] = useState<string | null>(null)
+  const sendAccess = async (row: ClientRow) => {
+    setSendingAccessId(row.id)
+    setAccessMsg(null)
+    try {
+      const res = await adminRequest<{ message: string }>(`/admin/clients/${row.id}/send-access`, {
+        method: 'POST',
+      })
+      setAccessMsg(res.message)
+    } catch (e) {
+      setAccessMsg(e instanceof ApiError ? e.message : 'Erro ao enviar acesso.')
+    } finally {
+      setSendingAccessId(null)
+      refetch()
+    }
+  }
+
   return (
     <>
       <Seo title="Clientes — Projeto Sete Admin" noindex />
@@ -331,6 +349,12 @@ export function AdminClients() {
       </div>
 
       {/* Lista */}
+      {accessMsg && (
+        <div className="mt-4 rounded-lg border border-brass/40 bg-brass/10 px-4 py-3 text-sm text-brass-soft">
+          {accessMsg}
+        </div>
+      )}
+
       {status === 'loading' && <LoadingState className="py-16" />}
       {items.length > 0 && (
         <div className="mt-6 overflow-x-auto">
@@ -368,9 +392,21 @@ export function AdminClients() {
                     </button>
                   </td>
                   <td className="py-3 pr-4">
-                    <button onClick={() => startEdit(row)} className="text-xs text-brass link-underline">
-                      Editar
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button onClick={() => startEdit(row)} className="text-xs text-brass link-underline">
+                        Editar
+                      </button>
+                      {row.email && (
+                        <button
+                          onClick={() => sendAccess(row)}
+                          disabled={sendingAccessId === row.id}
+                          className="text-xs text-mist link-underline hover:text-paper disabled:opacity-50"
+                          title={row.auth_user_id ? 'Reenviar senha temporária' : 'Criar conta de acesso para este cliente'}
+                        >
+                          {sendingAccessId === row.id ? 'Enviando…' : row.auth_user_id ? 'Reenviar acesso' : 'Enviar acesso'}
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

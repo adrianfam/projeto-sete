@@ -216,6 +216,7 @@ export function ClienteInspiracoes() {
                       toggle(c.sourceType, c.sourceId)
                     }}
                     disabled={isBusy}
+                    aria-pressed={isFav}
                     aria-label={isFav ? 'Remover dos favoritos' : 'Salvar nos favoritos'}
                     className={cn(
                       'absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full backdrop-blur transition-all active:scale-90 disabled:opacity-50',

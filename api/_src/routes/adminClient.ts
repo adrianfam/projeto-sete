@@ -9,8 +9,15 @@ import {
   projectUpdateSchema,
   projectEventInputSchema,
   projectFileTypeEnum,
+  projectStatusLabels,
   type ClientProfile,
 } from '@projeto-sete/shared'
+import {
+  sendProjectStatusEmail,
+  sendVisitScheduledEmail,
+  sendAccountAccessEmail,
+  sendAccountRecoveryEmail,
+} from '../lib/clientEmails'
 
 type Sb = ReturnType<typeof getSupabaseAdmin>
 
@@ -219,9 +226,33 @@ export const adminClientRoutes: FastifyPluginAsync = async (app) => {
     if (d.notes !== undefined) payload.notes = d.notes
     if (d.architectId !== undefined) payload.architect_id = d.architectId
 
+    // Lê o estado atual antes do update (para só notificar quando o status mudar de fato)
+    const { data: before } = await sb
+      .from('projects')
+      .select('status,client_id,title')
+      .eq('id', id)
+      .maybeSingle()
+    if (!before) return reply.code(404).send({ message: 'Projeto não encontrado.' })
+
     const { data, error } = await sb.from('projects').update(payload).eq('id', id).select().maybeSingle()
     if (error) return reply.code(400).send({ message: error.message })
     if (!data) return reply.code(404).send({ message: 'Projeto não encontrado.' })
+
+    // E-mail transacional: apenas quando o status MUDOU de fato → notifica o cliente dono
+    if (d.status !== undefined && payload.status !== undefined && d.status !== before.status) {
+      const { data: owner } = await sb
+        .from('clients')
+        .select('email,full_name')
+        .eq('id', before.client_id)
+        .maybeSingle()
+      if (owner?.email) {
+        sendProjectStatusEmail(owner, {
+          projectTitle: data.title,
+          statusLabel: projectStatusLabels[payload.status as keyof typeof projectStatusLabels] ?? String(payload.status),
+        })
+      }
+    }
+
     return { project: data }
   })
 
@@ -306,8 +337,12 @@ export const adminClientRoutes: FastifyPluginAsync = async (app) => {
     const d = parsed.data
     const sb = getSupabaseAdmin()
 
-    const { data: project } = await sb.from('projects').select('id').eq('id', id).maybeSingle()
-    if (!project) return reply.code(404).send({ message: 'Projeto não encontrado.' })
+    const { data: proj } = await sb
+      .from('projects')
+      .select('id,title,client_id')
+      .eq('id', id)
+      .maybeSingle()
+    if (!proj) return reply.code(404).send({ message: 'Projeto não encontrado.' })
 
     const { data, error } = await sb
       .from('project_events')
@@ -321,6 +356,23 @@ export const adminClientRoutes: FastifyPluginAsync = async (app) => {
       .select()
       .single()
     if (error) return reply.code(400).send({ message: error.message })
+
+    // E-mail transacional: visita agendada → notifica o cliente dono
+    const { data: owner } = await sb
+      .from('clients')
+      .select('email,full_name')
+      .eq('id', proj.client_id)
+      .maybeSingle()
+    if (owner?.email) {
+      sendVisitScheduledEmail(owner, {
+        projectTitle: proj.title,
+        title: d.title,
+        scheduledAt: data.scheduled_at,
+        professional: d.professional,
+        notes: d.notes ?? null,
+      })
+    }
+
     return reply.code(201).send({ event: data })
   })
 
@@ -330,5 +382,68 @@ export const adminClientRoutes: FastifyPluginAsync = async (app) => {
     const { error } = await sb.from('project_events').delete().eq('id', eventId)
     if (error) return reply.code(400).send({ message: error.message })
     return reply.code(204).send()
+  })
+
+  // =========================================================================
+  // Acesso do cliente (ativação por telefone/WhatsApp — pendência do plano)
+  // =========================================================================
+  app.post('/admin/clients/:id/send-access', { preHandler: adminGuard }, async (req, reply) => {
+    const { id } = req.params as { id: string }
+    const sb = getSupabaseAdmin()
+
+    const { data: client, error: clientErr } = await sb
+      .from('clients')
+      .select('id,auth_user_id,email,full_name')
+      .eq('id', id)
+      .maybeSingle()
+    if (clientErr) return reply.code(500).send({ message: clientErr.message })
+    if (!client) return reply.code(400).send({ message: 'Cliente não encontrado.' })
+    if (!client.email) return reply.code(400).send({ message: 'Cliente sem e-mail cadastrado.' })
+
+    // 1) Conta já existe → link de recuperação (NUNCA troca a senha escolhida pelo cliente)
+    if (client.auth_user_id) {
+      const { data: linkData, error: linkErr } = await sb.auth.admin.generateLink({
+        type: 'recovery',
+        email: client.email,
+      })
+      if (linkErr || !linkData?.properties?.action_link) {
+        return reply.code(500).send({ message: linkErr?.message ?? 'Erro ao gerar link de recuperação.' })
+      }
+      sendAccountRecoveryEmail(client, { recoveryLink: linkData.properties.action_link })
+      return { ok: true, message: 'Conta já existente — link de recuperação de senha enviado por e-mail.' }
+    }
+
+    // 2) Sem conta: tenta criar (acesso imediato, sem confirmação manual)
+    const { data: user, error: createErr } = await sb.auth.admin.createUser({
+      email: client.email,
+      email_confirm: true,
+      user_metadata: { full_name: client.full_name, role: 'client' },
+    })
+    if (createErr || !user.user) {
+      // E-mail já registrado em Auth sem vínculo em clients → usa recuperação
+      const { data: linkData, error: linkErr } = await sb.auth.admin.generateLink({
+        type: 'recovery',
+        email: client.email,
+      })
+      if (!linkErr && linkData?.properties?.action_link) {
+        sendAccountRecoveryEmail(client, { recoveryLink: linkData.properties.action_link })
+        return { ok: true, message: 'E-mail já cadastrado — link de recuperação enviado.' }
+      }
+      return reply.code(400).send({ message: createErr?.message ?? 'Erro ao criar a conta.' })
+    }
+
+    const authUserId = user.user.id
+    await sb.from('clients').update({ auth_user_id: authUserId }).eq('id', id)
+
+    // 3) Conta nova: senha temporária forte e envio por e-mail
+    const temporaryPassword = `PS-${crypto.randomUUID().slice(0, 10)}!${Date.now().toString(36).slice(-4)}`
+    const { error: passErr } = await sb.auth.admin.updateUserById(authUserId, { password: temporaryPassword })
+    if (passErr) {
+      // Senha não aplicada — não anuncia uma senha que não existe
+      return reply.code(500).send({ message: 'Conta criada, mas falha ao definir a senha. Tente novamente.' })
+    }
+    sendAccountAccessEmail(client, { temporaryPassword })
+
+    return { ok: true, message: 'Acesso criado. O cliente recebeu a senha temporária por e-mail.' }
   })
 }
