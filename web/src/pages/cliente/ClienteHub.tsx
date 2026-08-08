@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom'
 import { Seo } from '@/components/seo/Seo'
 import { LoadingState } from '@/components/ui/LoadingState'
 import { useClienteApi, clienteRequest } from '@/lib/clienteClient'
+import { KitExperienceCard } from './KitExperienceCard'
 import {
-  brand,
   projectStatusOrder,
   projectStatusLabels,
   propertyPhaseOptions,
@@ -360,22 +360,7 @@ function LeadView() {
         </div>
       </div>
 
-      <div className="card-line border-brass/30 bg-gradient-to-br from-graphite to-ink p-6">
-        <p className="text-2xl">🎁</p>
-        <h2 className="mt-3 font-serif text-xl text-paper">Kit Experience</h2>
-        <p className="mt-2 text-sm text-mist">
-          Gostaria de testar nossos acabamentos sob a luz da sua casa? Solicite
-          pelo WhatsApp nosso kit com amostras físicas.
-        </p>
-        <a
-          href={brand.contact.whatsappLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-5 inline-flex items-center gap-2 rounded-lg border border-brass/50 px-4 py-2.5 text-sm font-semibold text-brass-soft transition-colors hover:bg-brass/15"
-        >
-          Pedir pelo WhatsApp
-        </a>
-      </div>
+      <KitExperienceCard />
     </div>
   )
 }
@@ -425,6 +410,23 @@ function ActiveView({ items, upcoming }: { items: Project[]; upcoming: EventItem
       <div className="grid gap-6 md:grid-cols-2">
         <ProjectDownloads projectId={project.id} />
         <NextEvents events={upcoming.filter((e) => e.project_id === project.id)} />
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Link
+          to="/cliente/inspiracoes"
+          className="card-line group bg-graphite p-6 transition-colors hover:border-brass/40"
+        >
+          <p className="text-2xl">🖼️</p>
+          <h2 className="mt-3 font-serif text-xl text-paper group-hover:text-brass-soft">Pasta de Inspirações</h2>
+          <p className="mt-2 text-sm text-mist">
+            Salve ideias de ambientes e acabamentos que combinam com o seu projeto.
+          </p>
+          <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-brass-soft">
+            Abrir pasta →
+          </span>
+        </Link>
+        <KitExperienceCard compact />
       </div>
     </div>
   )

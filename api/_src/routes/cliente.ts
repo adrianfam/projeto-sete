@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { getSupabaseAdmin } from '../lib/supabaseAdmin'
 import { authedGuard, clientGuard, type AuthedSession, type ClientSession } from '../lib/clientAuth'
-import { clientProfileSchema } from '@projeto-sete/shared'
+import { clientProfileSchema, clientInspirationSchema } from '@projeto-sete/shared'
 
 type Sb = ReturnType<typeof getSupabaseAdmin>
 
@@ -87,6 +87,105 @@ export const clienteRoutes: FastifyPluginAsync = async (app) => {
       .limit(50)
     if (error) return reply.code(500).send({ message: error.message })
     return { items: data ?? [] }
+  })
+
+  // -------------------------------------------------------------------------
+  // Pasta de Inspirações (favoritos sobre portfolio + instagram)
+  // -------------------------------------------------------------------------
+  app.get('/cliente/inspirations', { preHandler: clientGuard }, async (req, reply) => {
+    const session = (req as unknown as { client: ClientSession }).client
+    const sb = getSupabaseAdmin()
+
+    const { data: favs, error } = await sb
+      .from('client_inspirations')
+      .select('id,source_type,source_id,note,created_at')
+      .eq('client_id', session.clientId)
+      .order('created_at', { ascending: false })
+    if (error) return reply.code(500).send({ message: error.message })
+
+    const rows = favs ?? []
+    const portfolioIds = rows.filter((r) => r.source_type === 'portfolio').map((r) => r.source_id)
+    const instagramIds = rows.filter((r) => r.source_type === 'instagram').map((r) => r.source_id)
+
+    const byId = (list: { id: string }[]) => new Map(list.map((x) => [x.id, x]))
+    let portfolio = new Map<string, unknown>()
+    let instagram = new Map<string, unknown>()
+
+    if (portfolioIds.length > 0) {
+      const { data } = await sb
+        .from('portfolio_items')
+        .select('id,title,slug,cover_image_url,project_type,location')
+        .in('id', portfolioIds)
+        .eq('is_published', true)
+        .is('deleted_at', null)
+      portfolio = byId(data ?? [])
+    }
+    if (instagramIds.length > 0) {
+      const { data } = await sb
+        .from('instagram_posts')
+        .select('id,caption,image_url,post_url,aspect_ratio')
+        .in('id', instagramIds)
+        .eq('is_published', true)
+      instagram = byId(data ?? [])
+    }
+
+    return {
+      items: rows.map((r) => ({
+        id: r.id,
+        source_type: r.source_type,
+        source_id: r.source_id,
+        note: r.note,
+        created_at: r.created_at,
+        content:
+          r.source_type === 'portfolio' ? (portfolio.get(r.source_id) ?? null) : (instagram.get(r.source_id) ?? null),
+      })),
+    }
+  })
+
+  app.post('/cliente/inspirations', { preHandler: clientGuard }, async (req, reply) => {
+    const session = (req as unknown as { client: ClientSession }).client
+    const parsed = clientInspirationSchema.safeParse(req.body)
+    if (!parsed.success) {
+      return reply.code(400).send({ message: 'Dados inválidos. Verifique os campos.' })
+    }
+    const { sourceType, sourceId, note } = parsed.data
+    const sb = getSupabaseAdmin()
+
+    // Valida que a fonte existe E está publicada (não permite favoritar rascunho)
+    const table = sourceType === 'portfolio' ? 'portfolio_items' : 'instagram_posts'
+    let sourceQuery = sb.from(table).select('id').eq('id', sourceId).eq('is_published', true)
+    if (sourceType === 'portfolio') sourceQuery = sourceQuery.is('deleted_at', null)
+    const { data: source } = await sourceQuery.maybeSingle()
+    if (!source) return reply.code(404).send({ message: 'Inspiração não encontrada.' })
+
+    const { data, error } = await sb
+      .from('client_inspirations')
+      .upsert(
+        {
+          client_id: session.clientId,
+          source_type: sourceType,
+          source_id: sourceId,
+          note: note ?? null,
+        },
+        { onConflict: 'client_id,source_type,source_id' },
+      )
+      .select('id,source_type,source_id,note,created_at')
+      .single()
+    if (error) return reply.code(500).send({ message: error.message })
+    return reply.code(201).send({ item: data })
+  })
+
+  app.delete('/cliente/inspirations/:id', { preHandler: clientGuard }, async (req, reply) => {
+    const session = (req as unknown as { client: ClientSession }).client
+    const { id } = req.params as { id: string }
+    const sb = getSupabaseAdmin()
+    const { error } = await sb
+      .from('client_inspirations')
+      .delete()
+      .eq('id', id)
+      .eq('client_id', session.clientId)
+    if (error) return reply.code(500).send({ message: error.message })
+    return reply.code(204).send()
   })
 
   // -------------------------------------------------------------------------

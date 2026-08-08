@@ -193,9 +193,23 @@ create policy "project_events_access" on public.project_events
   )
   with check (public.is_admin());
 
--- ===========================================================================
--- Fase 2 — Meus Orçamentos (histórico de contact_submissions do cliente)
--- ===========================================================================
+-- ---------------------------------------------------------------------------
+-- client_inspirations  (Fase 3 — Pasta de Inspirações: favoritos do cliente
+-- sobre portfolio_items e instagram_posts, estilo Pinterest)
+-- ---------------------------------------------------------------------------
+create table if not exists public.client_inspirations (
+  id          uuid primary key default gen_random_uuid(),
+  client_id   uuid not null references public.clients(id) on delete cascade,
+  source_type text not null check (source_type in ('portfolio', 'instagram')),
+  source_id   text not null,   -- id de portfolio_items ou instagram_posts
+  note        text,            -- comentário opcional do cliente (ex.: "quero algo assim no closet")
+  created_at  timestamptz not null default now()
+);
+create unique index if not exists uq_client_inspirations
+  on public.client_inspirations (client_id, source_type, source_id);
+create index if not exists idx_client_inspirations_client
+  on public.client_inspirations (client_id, created_at desc);
+
 -- Cliente autenticado lê os próprios orçamentos (defesa em profundidade —
 -- a API usa service-role com checagem manual do auth_user_id).
 drop policy if exists "client_own_budgets" on public.contact_submissions;
@@ -203,5 +217,19 @@ create policy "client_own_budgets" on public.contact_submissions
   for select using (
     client_id in (select id from public.clients where auth_user_id = auth.uid())
   );
+
+-- ===========================================================================
+-- Fase 3 — Inspirações (RLS: dono gerencia os próprios favoritos)
+-- ===========================================================================
+alter table public.client_inspirations enable row level security;
+
+drop policy if exists "inspirations_owner" on public.client_inspirations;
+create policy "inspirations_owner" on public.client_inspirations
+  for all
+  using (
+    public.is_admin()
+    or client_id in (select id from public.clients where auth_user_id = auth.uid())
+  )
+  with check (public.is_admin() or client_id in (select id from public.clients where auth_user_id = auth.uid()));
 
 -- Pronto. Após rodar, rode SUPABASE_RLS.sql se ainda não tiver (is_admin()).

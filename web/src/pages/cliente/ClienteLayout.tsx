@@ -3,7 +3,10 @@ import { useState } from 'react'
 import { useAuthStore } from '@/store/authStore'
 import { cn } from '@/lib/utils'
 
-const navItems = [{ label: 'Início', href: '/cliente' }] as const
+const navItems = [
+  { label: 'Início', href: '/cliente' },
+  { label: 'Inspirações', href: '/cliente/inspiracoes' },
+] as const
 
 export function ClienteLayout() {
   const { user, signOut } = useAuthStore()

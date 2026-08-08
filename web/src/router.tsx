@@ -48,6 +48,7 @@ const ClienteLogin = lazy(() => import('@/pages/cliente/ClienteLogin').then((m) 
 const ClienteSignup = lazy(() => import('@/pages/cliente/ClienteSignup').then((m) => ({ default: m.ClienteSignup })))
 const ClienteLayout = lazy(() => import('@/pages/cliente/ClienteLayout').then((m) => ({ default: m.ClienteLayout })))
 const ClienteHub = lazy(() => import('@/pages/cliente/ClienteHub').then((m) => ({ default: m.ClienteHub })))
+const ClienteInspiracoes = lazy(() => import('@/pages/cliente/ClienteInspiracoes').then((m) => ({ default: m.ClienteInspiracoes })))
 
 const suspense = (el: React.ReactNode) => <Suspense fallback={<LoadingState />}>{el}</Suspense>
 
@@ -89,6 +90,7 @@ export const router = createBrowserRouter([
     element: <ClienteProtected>{suspense(<ClienteLayout />)}</ClienteProtected>,
     children: [
       { index: true, element: suspense(<ClienteHub />) },
+      { path: 'inspiracoes', element: suspense(<ClienteInspiracoes />) },
       { path: '*', element: suspense(<NotFound />) },
     ],
   },

@@ -56,7 +56,7 @@ export const portfolioQuerySchema = z.object({
     .union([z.string(), z.boolean()])
     .optional()
     .transform((v) => v === true || v === 'true'),
-  limit: z.coerce.number().int().min(1).max(50).default(20),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
   offset: z.coerce.number().int().min(0).default(0),
 })
 export type PortfolioQuery = z.infer<typeof portfolioQuerySchema>
