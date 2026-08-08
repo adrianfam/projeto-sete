@@ -74,6 +74,22 @@ export const clienteRoutes: FastifyPluginAsync = async (app) => {
   })
 
   // -------------------------------------------------------------------------
+  // Meus Orçamentos (histórico de contact_submissions vinculados)
+  // -------------------------------------------------------------------------
+  app.get('/cliente/budgets', { preHandler: clientGuard }, async (req, reply) => {
+    const session = (req as unknown as { client: ClientSession }).client
+    const sb = getSupabaseAdmin()
+    const { data, error } = await sb
+      .from('contact_submissions')
+      .select('id,name,email,phone,subject,message,status,created_at')
+      .eq('client_id', session.clientId)
+      .order('created_at', { ascending: false })
+      .limit(50)
+    if (error) return reply.code(500).send({ message: error.message })
+    return { items: data ?? [] }
+  })
+
+  // -------------------------------------------------------------------------
   // Projetos (dono ou arquiteto vinculado)
   // -------------------------------------------------------------------------
   app.get('/cliente/projects', { preHandler: clientGuard }, async (req, reply) => {

@@ -17,3 +17,27 @@ export const contactInputSchema = z.object({
   website: z.string().max(0).optional().or(z.literal('')).optional(),
 })
 export type ContactInput = z.infer<typeof contactInputSchema>
+
+/** Status do atendimento (caixa de entrada do admin). */
+export const contactStatusEnum = z.enum(['new', 'read', 'replied', 'archived'])
+export type ContactStatus = z.infer<typeof contactStatusEnum>
+
+export const contactStatusLabels: Record<ContactStatus, string> = {
+  new: 'Novo',
+  read: 'Lido',
+  replied: 'Respondido',
+  archived: 'Arquivado',
+}
+
+/** Linha de contact_submissions exposta ao cliente (sem ip/user_agent). */
+export const contactSubmissionSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  email: z.string(),
+  phone: z.string().nullable(),
+  subject: z.string().nullable(),
+  message: z.string(),
+  status: contactStatusEnum,
+  created_at: z.string(),
+})
+export type ContactSubmission = z.infer<typeof contactSubmissionSchema>

@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { contactInputSchema, brand } from '@projeto-sete/shared'
 import { request, ApiError } from '@/lib/apiClient'
+import { getAdminToken } from '@/lib/adminToken'
 import { Container } from '@/components/ui/Container'
 import { Section } from '@/components/ui/Section'
 import { SectionHeading } from '@/components/ui/SectionHeading'
@@ -21,6 +23,8 @@ type FormValues = {
 export function Contact() {
   const [sent, setSent] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [searchParams] = useSearchParams()
+  const prefilledSubject = searchParams.get('subject') ?? ''
 
   const {
     register,
@@ -29,13 +33,23 @@ export function Contact() {
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(contactInputSchema as unknown as Parameters<typeof zodResolver>[0]),
-    defaultValues: { name: '', email: '', phone: '', subject: '', message: '', website: '' },
+    defaultValues: {
+      name: '',
+      email: '',
+      phone: '',
+      subject: prefilledSubject,
+      message: '',
+      website: '',
+    },
   })
 
   const onSubmit = async (values: FormValues) => {
     setSubmitError(null)
     try {
-      await request<{ ok: boolean }>('/contact', { method: 'POST', body: values })
+      // Se o cliente estiver logado, envia o token para o envio ser
+      // vinculado à conta (aparece em "Meus Orçamentos").
+      const token = getAdminToken()
+      await request<{ ok: boolean }>('/contact', { method: 'POST', body: values, token })
       setSent(true)
       reset()
     } catch (e) {

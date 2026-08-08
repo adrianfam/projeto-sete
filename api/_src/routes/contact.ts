@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { getSupabaseAdmin } from '../lib/supabaseAdmin'
 import { contactInputSchema } from '@projeto-sete/shared'
+import { requireAuthed } from '../lib/clientAuth'
 import { sendMail } from '../lib/mailer'
 import { brand } from '@projeto-sete/shared'
 
@@ -24,12 +25,33 @@ export const contactRoutes: FastifyPluginAsync = async (app) => {
       })
 
       const sb = getSupabaseAdmin()
+
+      // Vincula ao perfil do cliente se houver sessão ativa (melhor esforço —
+      // nunca derruba a submissão; o envio anônimo continua funcionando).
+      let clientId: string | null = null
+      if (req.headers.authorization?.startsWith('Bearer ')) {
+        try {
+          const authed = await requireAuthed(req)
+          if (authed) {
+            const { data: client } = await sb
+              .from('clients')
+              .select('id')
+              .eq('auth_user_id', authed.userId)
+              .maybeSingle()
+            clientId = client?.id ?? null
+          }
+        } catch {
+          clientId = null
+        }
+      }
+
       const { error } = await sb.from('contact_submissions').insert({
         name: input.name,
         email: input.email,
         phone: input.phone,
         subject: input.subject,
         message: input.message,
+        client_id: clientId,
         ip: (req.ip ?? null) as never,
         user_agent: req.headers['user-agent'] ?? null,
         status: 'new',
@@ -59,8 +81,8 @@ export const contactRoutes: FastifyPluginAsync = async (app) => {
 
 function escape(s: string): string {
   return s
-    .replace(/&/g, '&')
-    .replace(/</g, '<')
-    .replace(/>/g, '>')
-    .replace(/"/g, '"')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
 }

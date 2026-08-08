@@ -193,4 +193,15 @@ create policy "project_events_access" on public.project_events
   )
   with check (public.is_admin());
 
+-- ===========================================================================
+-- Fase 2 — Meus Orçamentos (histórico de contact_submissions do cliente)
+-- ===========================================================================
+-- Cliente autenticado lê os próprios orçamentos (defesa em profundidade —
+-- a API usa service-role com checagem manual do auth_user_id).
+drop policy if exists "client_own_budgets" on public.contact_submissions;
+create policy "client_own_budgets" on public.contact_submissions
+  for select using (
+    client_id in (select id from public.clients where auth_user_id = auth.uid())
+  );
+
 -- Pronto. Após rodar, rode SUPABASE_RLS.sql se ainda não tiver (is_admin()).

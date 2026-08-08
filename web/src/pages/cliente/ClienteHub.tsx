@@ -10,7 +10,9 @@ import {
   propertyPhaseOptions,
   roomOptions,
   annualVolumeOptions,
+  contactStatusLabels,
   type ClientType,
+  type ContactStatus,
   type ProjectStatus,
 } from '@projeto-sete/shared'
 import { cn } from '@/lib/utils'
@@ -280,22 +282,82 @@ function HubWithProfile({ profile }: { profile: Profile }) {
 // ---------------------------------------------------------------------------
 // Estágio lead: orçamentos + kit experience
 // ---------------------------------------------------------------------------
+interface BudgetItem {
+  id: string
+  name: string
+  email: string
+  phone: string | null
+  subject: string | null
+  message: string
+  status: ContactStatus
+  created_at: string
+}
+
+function statusBadge(status: ContactStatus) {
+  switch (status) {
+    case 'replied':
+      return 'border-success/50 text-success'
+    case 'archived':
+      return 'border-graphite-light text-mist'
+    case 'read':
+      return 'border-brass/40 text-brass-soft'
+    default:
+      return 'border-yellow-700/50 text-yellow-500'
+  }
+}
+
 function LeadView() {
+  const budgets = useClienteApi<{ items: BudgetItem[] }>('/cliente/budgets')
+  const items = budgets.data?.items ?? []
+
   return (
     <div className="mt-8 grid gap-6 md:grid-cols-2">
       <div className="card-line bg-graphite p-6">
         <p className="text-2xl">📋</p>
         <h2 className="mt-3 font-serif text-xl text-paper">Meus Orçamentos</h2>
-        <p className="mt-2 text-sm text-mist">
-          Seu histórico de simulações vai aparecer aqui. Enquanto isso, que tal
-          pedir um orçamento do seu projeto?
-        </p>
-        <Link
-          to="/contato"
-          className="mt-5 inline-flex items-center gap-2 rounded-lg bg-brass px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-brass-soft"
-        >
-          Solicitar orçamento →
-        </Link>
+
+        {budgets.status === 'loading' ? (
+          <p className="mt-3 text-sm text-mist">Carregando…</p>
+        ) : items.length === 0 ? (
+          <p className="mt-2 text-sm text-mist">
+            Você ainda não enviou nenhum orçamento. Quando enviar pelo site
+            logado, ele aparece aqui no seu histórico.
+          </p>
+        ) : (
+          <ul className="mt-4 space-y-3">
+            {items.map((b) => (
+              <li key={b.id} className="rounded-lg border border-graphite-light bg-charcoal px-4 py-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="truncate text-sm font-medium text-paper">{b.subject ?? 'Orçamento'}</p>
+                  <span className={cn('badge shrink-0', statusBadge(b.status))}>{contactStatusLabels[b.status]}</span>
+                </div>
+                <p className="mt-1 line-clamp-2 text-xs text-mist">{b.message}</p>
+                <p className="mt-1 text-[10px] uppercase tracking-wider text-mist/60">
+                  {new Date(b.created_at).toLocaleDateString('pt-BR', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                  })}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <div className="mt-5 flex flex-wrap gap-2">
+          <Link
+            to="/contato"
+            className="inline-flex items-center gap-2 rounded-lg bg-brass px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-brass-soft"
+          >
+            Novo orçamento →
+          </Link>
+          <Link
+            to="/contato?subject=Revisão técnica do meu orçamento"
+            className="inline-flex items-center gap-2 rounded-lg border border-brass/50 px-4 py-2.5 text-sm font-semibold text-brass-soft transition-colors hover:bg-brass/15"
+          >
+            Solicitar revisão técnica
+          </Link>
+        </div>
       </div>
 
       <div className="card-line border-brass/30 bg-gradient-to-br from-graphite to-ink p-6">
