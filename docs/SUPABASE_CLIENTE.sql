@@ -147,11 +147,11 @@ drop policy if exists "clients_owner_update" on public.clients;
 create policy "clients_owner_update" on public.clients
   for update using (auth.uid() = auth_user_id or public.is_admin())
   with check (
-    auth.uid() = auth_user_id or public.is_admin()
-  )
-  and (
-    public.is_admin()
-    or status = (select c.status from public.clients c where c.id = clients.id)
+    (auth.uid() = auth_user_id or public.is_admin())
+    and (
+      public.is_admin()
+      or status = (select c.status from public.clients c where c.id = clients.id)
+    )
   );
 
 -- projects: dono do cliente, arquiteto vinculado ou admin
