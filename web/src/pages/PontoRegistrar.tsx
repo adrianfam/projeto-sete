@@ -52,7 +52,8 @@ export function PontoRegistrar() {
   const [status, setStatus] = useState<StatusResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [registering, setRegistering] = useState(false)
-  const [locationDenied, setLocationDenied] = useState(false)
+  const [locating, setLocating] = useState(false)
+  const [geoError, setGeoError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [lastRecord, setLastRecord] = useState<string | null>(null)
@@ -89,16 +90,18 @@ export function PontoRegistrar() {
   const register = async () => {
     setError(null)
     setSuccess(null)
-    setLocationDenied(false)
+    setGeoError(null)
 
     if (!navigator.geolocation) {
-      setError('Seu dispositivo não permite localização. Use outro aparelho.')
+      setGeoError('Seu dispositivo não permite localização. Use um navegador com GPS (celular) ou conecte o computador à internet.')
       return
     }
 
     setRegistering(true)
+    setLocating(true)
     try {
       const pos = await getUserPosition()
+      setLocating(false)
       const empId = sessionStorage.getItem('ponto_employee_id')
       if (!empId) {
         navigate('/ponto/login', { replace: true })
@@ -124,11 +127,10 @@ export function PontoRegistrar() {
       // Atualiza status
       fetchStatus()
     } catch (err) {
-      if (err instanceof GeoError && err.kind === 'denied') {
-        setLocationDenied(true)
-        setError(err.message)
-      } else if (err instanceof GeoError) {
-        setError(err.message)
+      setLocating(false)
+      if (err instanceof GeoError) {
+        // Qualquer falha de localização mostra instruções + botão de repetir
+        setGeoError(err.message)
       } else {
         setError(err instanceof ApiError ? err.message : 'Erro ao registrar.')
       }
@@ -197,27 +199,34 @@ export function PontoRegistrar() {
             className={`h-48 w-48 rounded-full ${style.bg} ${style.hover} ${style.shadow} text-white shadow-2xl transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed flex flex-col items-center justify-center`}
           >
             <span className="text-2xl font-bold leading-tight">
-              {registering ? '…' : status?.label ?? 'Carregando'}
+              {registering ? (locating ? 'Localizando…' : '…') : (status?.label ?? 'Carregando')}
             </span>
           </button>
 
           {/* Mensagens */}
           <div className="mt-8 w-full max-w-sm space-y-3">
-            {locationDenied && (
+            {geoError && (
               <div className="rounded-xl border-2 border-yellow-300 bg-yellow-50 px-5 py-4 text-center">
-                <p className="text-base font-medium text-yellow-800">📍 Localização necessária</p>
-                <p className="mt-2 text-sm text-yellow-700">
-                  Para registrar, ative o GPS do seu celular:
-                </p>
+                <p className="text-base font-medium text-yellow-800">📍 Não foi possível obter a localização</p>
+                <p className="mt-2 text-sm text-yellow-700">{geoError}</p>
+                <p className="mt-2 text-sm text-yellow-700">Verifique e tente novamente:</p>
                 <ul className="mt-2 space-y-1 text-left text-sm text-yellow-700">
-                  <li><strong>Android:</strong> Deslize o menu superior e ative "Localização"</li>
-                  <li><strong>iPhone:</strong> Ajustes → Privacidade → Localização → Ativar</li>
+                  <li><strong>Android:</strong> deslize o menu superior e ative "Localização" (e a permissão do navegador)</li>
+                  <li><strong>iPhone:</strong> Ajustes → Privacidade → Localização → ative para o navegador</li>
+                  <li><strong>Computador:</strong> permita o navegador acessar a localização (no Chrome: cadeado na barra de endereço → Localização → Permitir)</li>
+                  <li>Conecte-se a uma rede (Wi-Fi ou dados móveis) e tente em área aberta</li>
                 </ul>
-                <p className="mt-2 text-sm text-yellow-700">Depois é só tentar novamente!</p>
+                <button
+                  onClick={register}
+                  disabled={registering}
+                  className="mt-3 rounded-lg bg-yellow-500/20 px-4 py-2 text-sm font-semibold text-yellow-800 transition-colors hover:bg-yellow-500/30 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Tentar novamente
+                </button>
               </div>
             )}
 
-            {error && !locationDenied && (
+            {error && (
               <p className="rounded-xl bg-red-50 px-4 py-3 text-center text-base text-red-700">
                 {error}
               </p>
