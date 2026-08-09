@@ -219,6 +219,50 @@ create policy "client_own_budgets" on public.contact_submissions
   );
 
 -- ===========================================================================
+-- Fase 4 — E-mail único em clients (evita clientes duplicados)
+-- ===========================================================================
+-- 1) Dedupe seguro: mantém a linha com auth_user_id (dono vinculado ao Auth),
+--    senão a mais antiga; reaponta projetos/orçamentos/inspirações; apaga órfãs.
+do $$
+declare
+  r record;
+  keep uuid;
+begin
+  for r in
+    select lower(email) as em, count(*) as n
+    from public.clients
+    where email is not null and email <> ''
+    group by lower(email)
+    having count(*) > 1
+  loop
+    -- Mantém: com auth_user_id primeiro, senão a mais antiga
+    select id into keep
+    from public.clients
+    where lower(email) = r.em
+    order by (auth_user_id is not null) desc, created_at asc
+    limit 1;
+
+    -- Reaponta filhos das duplicatas para o registro mantido
+    update public.projects set client_id = keep
+      where client_id in (select id from public.clients where lower(email) = r.em and id <> keep);
+    update public.contact_submissions set client_id = keep
+      where client_id in (select id from public.clients where lower(email) = r.em and id <> keep);
+    update public.client_inspirations set client_id = keep
+      where client_id in (select id from public.clients where lower(email) = r.em and id <> keep);
+
+    delete from public.clients
+      where lower(email) = r.em and id <> keep;
+  end loop;
+end $$;
+
+-- 2) Índice único (case-insensitive, permite NULLs) — impede novas duplicatas
+create unique index if not exists uq_clients_email
+  on public.clients (lower(email))
+  where email is not null and email <> '';
+
+drop index if exists idx_clients_email;
+
+-- ===========================================================================
 -- Fase 3 — Inspirações (RLS: dono gerencia os próprios favoritos)
 -- ===========================================================================
 alter table public.client_inspirations enable row level security;

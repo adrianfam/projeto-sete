@@ -157,7 +157,11 @@ export function AdminClients() {
       setEditing(null)
       refetch()
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Erro ao salvar.')
+      if (e instanceof ApiError && e.status === 409) {
+        setError(e.message)
+      } else {
+        setError(e instanceof ApiError ? e.message : 'Erro ao salvar.')
+      }
     } finally {
       setSaving(false)
     }

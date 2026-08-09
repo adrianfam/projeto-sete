@@ -79,6 +79,21 @@ export const adminClientRoutes: FastifyPluginAsync = async (app) => {
     if (!parsed.success) return reply.code(400).send({ message: 'Dados inválidos. Verifique os campos.' })
     const d = parsed.data
     const sb = getSupabaseAdmin()
+
+    // E-mail único (case-insensitive) — evita clientes duplicados
+    if (d.email) {
+      const { data: existing } = await sb
+        .from('clients')
+        .select('id,full_name')
+        .ilike('email', d.email)
+        .maybeSingle()
+      if (existing) {
+        return reply.code(409).send({
+          message: `E-mail já cadastrado para ${existing.full_name}. Use outro e-mail ou edite o registro existente.`,
+        })
+      }
+    }
+
     const { data, error } = await sb
       .from('clients')
       .insert({ ...toClientColumns(d), email: d.email ?? null })
@@ -114,6 +129,21 @@ export const adminClientRoutes: FastifyPluginAsync = async (app) => {
       return reply.code(400).send({ message: 'Dados inválidos. Verifique os campos.' })
     }
     Object.assign(payload, toClientColumns(parsed.data))
+
+    // E-mail único (case-insensitive) — não permite colidir com outro cliente
+    if (payload.email) {
+      const { data: existing } = await sb
+        .from('clients')
+        .select('id,full_name')
+        .ilike('email', payload.email as string)
+        .neq('id', id)
+        .maybeSingle()
+      if (existing) {
+        return reply.code(409).send({
+          message: `E-mail já cadastrado para ${existing.full_name}. Use outro e-mail.`,
+        })
+      }
+    }
 
     const { data, error } = await sb
       .from('clients')
