@@ -19,6 +19,7 @@ interface Employee {
   id: string
   full_name: string
   matricula: number
+  is_active: boolean
 }
 
 const RECORD_LABELS: Record<string, string> = {
@@ -94,6 +95,19 @@ function formatDateShort(iso: string): string {
   } catch {
     return ''
   }
+}
+
+/** Chave de data local (YYYY-MM-DD) a partir de um ISO. */
+function localDateKey(iso: string): string {
+  const d = new Date(iso)
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+}
+
+/** Célula CSV: escapa separador/aspas quando necessário. */
+function csvCell(v: unknown): string {
+  const s = String(v ?? '')
+  return /[";\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
 }
 
 // ---------------------------------------------------------------------------
@@ -539,9 +553,207 @@ function RecordRow({
 }
 
 // ---------------------------------------------------------------------------
+// Relatório Mensal de Horas (aba "Horas Mensais") — monta o próprio fetch
+// ---------------------------------------------------------------------------
+interface DayHours {
+  date: string
+  entrada: string | null
+  almocoIda: string | null
+  almocoVolta: string | null
+  saida: string | null
+  minutes: number | null
+}
+
+interface EmployeeHours {
+  employeeId: string
+  fullName: string
+  matricula: number
+  totalMinutes: number
+  daysWorked: number
+  daysComplete: number
+  days: DayHours[]
+}
+
+function MonthlyHoursReport({ employees }: { employees: Employee[] }) {
+  const [month, setMonth] = useState(() => {
+    // Mês atual em horário local (YYYY-MM)
+    try {
+      return new Date().toLocaleDateString('en-CA').slice(0, 7)
+    } catch {
+      return new Date().toISOString().slice(0, 7)
+    }
+  })
+
+  const [yM, mM] = month.split('-').map(Number)
+  const monthFromIso = new Date(yM, mM - 1, 1).toISOString()
+  const monthToIso = new Date(new Date(yM, mM, 0).getTime() + 86_399_999).toISOString()
+  const hoursPath = `/admin/time-records?date_from=${monthFromIso}&date_to=${monthToIso}&limit=2000`
+  const { data, status } = useAdminApi<{ items: TimeRecord[] }>(hoursPath)
+  const hoursRecords = data?.items ?? []
+
+  const getEmployeeName = (id: string) =>
+    employees.find((e) => e.id === id)?.full_name ?? id.slice(0, 8)
+
+  const hoursByEmp: Record<string, EmployeeHours> = {}
+  hoursRecords.forEach((r) => {
+    const key = localDateKey(r.recorded_at)
+    if (!hoursByEmp[r.employee_id]) {
+      hoursByEmp[r.employee_id] = {
+        employeeId: r.employee_id,
+        fullName: getEmployeeName(r.employee_id),
+        matricula: employees.find((e) => e.id === r.employee_id)?.matricula ?? 0,
+        totalMinutes: 0,
+        daysWorked: 0,
+        daysComplete: 0,
+        days: [],
+      }
+    }
+    const emp = hoursByEmp[r.employee_id]
+    let day = emp.days.find((d) => d.date === key)
+    if (!day) {
+      day = { date: key, entrada: null, almocoIda: null, almocoVolta: null, saida: null, minutes: null }
+      emp.days.push(day)
+    }
+    if (r.record_type === 'entrada') day.entrada = r.recorded_at
+    if (r.record_type === 'almoco_ida') day.almocoIda = r.recorded_at
+    if (r.record_type === 'almoco_volta') day.almocoVolta = r.recorded_at
+    if (r.record_type === 'saida') day.saida = r.recorded_at
+  })
+  Object.values(hoursByEmp).forEach((emp) => {
+    emp.days.forEach((day) => {
+      const start = day.entrada ? new Date(day.entrada).getTime() : null
+      const end = day.saida ? new Date(day.saida).getTime() : null
+      if (start && end) {
+        let total = end - start
+        if (day.almocoIda && day.almocoVolta) {
+          total -= new Date(day.almocoVolta).getTime() - new Date(day.almocoIda).getTime()
+        }
+        if (total > 0) day.minutes = Math.round(total / 60_000)
+      }
+      if (day.entrada && day.saida) emp.daysComplete += 1
+    })
+    emp.days = emp.days.sort((a, b) => a.date.localeCompare(b.date))
+    emp.daysWorked = emp.days.length
+    emp.totalMinutes = emp.days.reduce((acc, d) => acc + (d.minutes ?? 0), 0)
+  })
+  const hoursRows = Object.values(hoursByEmp)
+    .filter((h) => h.daysWorked > 0)
+    .sort((a, b) => b.totalMinutes - a.totalMinutes)
+  const totalMinutesAll = hoursRows.reduce((a, h) => a + h.totalMinutes, 0)
+  const uniqueDays = new Set(hoursRecords.map((r) => localDateKey(r.recorded_at))).size
+
+  return (
+    <div className="mt-6">
+      <div>
+        <label className="mb-1 block text-xs uppercase tracking-eyebrow text-mist">Mês</label>
+        <input
+          type="month"
+          value={month}
+          onChange={(e) => setMonth(e.target.value)}
+          className="admin-input w-auto"
+        />
+      </div>
+
+      {status === 'loading' && <LoadingState className="py-16" />}
+      {status !== 'loading' && (
+        <>
+          {/* Cards de resumo do mês */}
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { label: 'Colaboradores com registro', value: hoursRows.length, icon: '👥' },
+              { label: 'Total de horas no mês', value: formatMinutes(totalMinutesAll), icon: '⏱️' },
+              { label: 'Dias com registro', value: uniqueDays, icon: '📅' },
+              {
+                label: 'Média por colaborador',
+                value: formatMinutes(Math.round(totalMinutesAll / Math.max(1, hoursRows.length))),
+                icon: '📊',
+              },
+            ].map((card) => (
+              <div key={card.label} className="card-line rounded p-5">
+                <div className="flex items-start justify-between">
+                  <p className="text-xs uppercase tracking-eyebrow text-smoke">{card.label}</p>
+                  <span className="text-lg">{card.icon}</span>
+                </div>
+                <p className="mt-2 font-serif text-3xl text-brass">{card.value}</p>
+              </div>
+            ))}
+          </div>
+
+          {hoursRows.length === 0 ? (
+            <p className="py-16 text-center text-smoke">Nenhum registro no mês selecionado.</p>
+          ) : (
+            <div className="mt-6 space-y-3">
+              {hoursRows.map((h) => (
+                <details key={h.employeeId} className="group card-line bg-graphite p-5">
+                  <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
+                    <span className="flex items-center gap-2">
+                      <span className="font-medium text-paper">{h.fullName}</span>
+                      <span className="rounded border border-graphite-light px-2 py-0.5 font-mono text-xs text-mist">
+                        #{h.matricula}
+                      </span>
+                    </span>
+                    <span className="flex items-center gap-4 text-sm">
+                      <span className="text-mist">
+                        {h.daysWorked} dia{h.daysWorked !== 1 ? 's' : ''} · {h.daysComplete} completo{h.daysComplete !== 1 ? 's' : ''}
+                      </span>
+                      <span className="font-mono font-bold text-brass">{formatMinutes(h.totalMinutes)}</span>
+                      <span className="text-mist/60 transition-transform group-open:rotate-180">▾</span>
+                    </span>
+                  </summary>
+                  <div className="mt-4 overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                      <thead>
+                        <tr className="border-b border-graphite-light text-xs uppercase tracking-eyebrow text-mist">
+                          <th className="py-2 pr-4">Data</th>
+                          <th className="py-2 pr-4">Entrada</th>
+                          <th className="py-2 pr-4">Almoço</th>
+                          <th className="py-2 pr-4">Saída</th>
+                          <th className="py-2 pr-4">Horas</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-graphite-light">
+                        {h.days.map((d) => (
+                          <tr key={d.date}>
+                            <td className="py-2 pr-4 text-mist">
+                              {new Date(d.date + 'T12:00:00').toLocaleDateString('pt-BR', {
+                                weekday: 'short',
+                                day: '2-digit',
+                                month: '2-digit',
+                              })}
+                            </td>
+                            <td className="py-2 pr-4 font-mono text-xs text-paper">
+                              {d.entrada ? formatTime(d.entrada) : '—'}
+                            </td>
+                            <td className="py-2 pr-4 font-mono text-xs text-mist">
+                              {d.almocoIda || d.almocoVolta
+                                ? `${d.almocoIda ? formatTime(d.almocoIda) : '—'} → ${d.almocoVolta ? formatTime(d.almocoVolta) : '—'}`
+                                : '—'}
+                            </td>
+                            <td className="py-2 pr-4 font-mono text-xs text-paper">
+                              {d.saida ? formatTime(d.saida) : '—'}
+                            </td>
+                            <td className="py-2 pr-4 font-mono text-xs font-bold text-brass">
+                              {d.minutes !== null ? formatMinutes(d.minutes) : '—'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </details>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Página principal
 // ---------------------------------------------------------------------------
-type ViewMode = 'list' | 'daily'
+type ViewMode = 'list' | 'daily' | 'hours'
 type Period = 'today' | '7d' | 'month' | 'prevMonth' | 'all'
 
 const PERIOD_OPTIONS: { key: Period; label: string }[] = [
@@ -597,8 +809,8 @@ export function AdminTimeRecords() {
 
   // A visão "Resumo Diário" só faz sentido para um dia único
   useEffect(() => {
-    if (period !== 'today') setViewMode('list')
-  }, [period])
+    if (period !== 'today' && viewMode === 'daily') setViewMode('list')
+  }, [period, viewMode])
 
   const { data: empData } = useAdminApi<{ items: Employee[] }>('/admin/employees')
 
@@ -624,9 +836,58 @@ export function AdminTimeRecords() {
   const getEmployeeName = (id: string) =>
     employees.find((e) => e.id === id)?.full_name ?? id.slice(0, 8)
 
+  // --- Pendências do dia (sem entrada / sem saída) ---
+  const pendingToday: { name: string; issue: string }[] = (() => {
+    if (period !== 'today') return []
+    const list: { name: string; issue: string }[] = []
+    employees
+      .filter((e) => e.is_active)
+      .forEach((e) => {
+        const recs = grouped[e.id] ?? []
+        const hasEntry = recs.some((r) => r.record_type === 'entrada')
+        const hasExit = recs.some((r) => r.record_type === 'saida')
+        if (!hasEntry) {
+          list.push({ name: e.full_name, issue: recs.length === 0 ? 'Sem registro hoje' : 'Sem entrada' })
+        } else if (!hasExit) {
+          list.push({ name: e.full_name, issue: 'Sem saída' })
+        }
+      })
+    return list
+  })()
+
+  // --- Exportar CSV dos registros filtrados ---
+  const exportCsv = () => {
+    if (records.length === 0) return
+    const sorted = [...records].sort((a, b) => a.recorded_at.localeCompare(b.recorded_at))
+    const header = ['Colaborador', 'Matrícula', 'Data', 'Hora', 'Tipo', 'Latitude', 'Longitude']
+    const rows = sorted.map((r) => {
+      const emp = employees.find((e) => e.id === r.employee_id)
+      return [
+        emp?.full_name ?? r.employee_id,
+        emp?.matricula ?? '',
+        formatDateShort(r.recorded_at),
+        formatTime(r.recorded_at),
+        RECORD_LABELS[r.record_type] ?? r.record_type,
+        r.latitude ?? '',
+        r.longitude ?? '',
+      ]
+    })
+    const csv = '\uFEFF' + [header, ...rows].map((row) => row.map(csvCell).join(';')).join('\r\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `pontos-${range.from ? range.from.slice(0, 10) : 'todos'}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
   const tabs: { key: ViewMode; label: string }[] = [
     { key: 'daily', label: '📊 Resumo Diário' },
     { key: 'list', label: '📋 Lista' },
+    { key: 'hours', label: '📈 Horas Mensais' },
   ]
 
   return (
@@ -639,7 +900,7 @@ export function AdminTimeRecords() {
       </p>
 
       {/* Tabs */}
-      <div className="mt-6 flex gap-1 rounded-lg border border-graphite-light bg-graphite p-1 w-fit">
+      <div className="mt-6 flex flex-wrap gap-1 rounded-lg border border-graphite-light bg-graphite p-1 w-fit">
         {tabs.map((tab) => (
           <button
             key={tab.key}
@@ -685,7 +946,35 @@ export function AdminTimeRecords() {
             </option>
           ))}
         </select>
+        {records.length > 0 && (
+          <button
+            onClick={exportCsv}
+            className="admin-input w-auto cursor-pointer transition-colors hover:border-brass/60"
+            title="Baixar os registros filtrados em CSV (abre no Excel/planilha)"
+          >
+            ⬇️ Exportar CSV
+          </button>
+        )}
       </div>
+
+      {/* Alertas de pendências do dia */}
+      {status !== 'error' && period === 'today' && pendingToday.length > 0 && (
+        <div className="mt-4 rounded-lg border border-yellow-700/60 bg-yellow-900/20 p-4">
+          <p className="text-sm font-medium text-yellow-300">
+            🚨 {pendingToday.length} colaborador{pendingToday.length !== 1 ? 'es' : ''} com pendência no ponto hoje
+          </p>
+          <ul className="mt-2 grid gap-1 text-xs text-yellow-200/80 sm:grid-cols-2">
+            {pendingToday.map((p) => (
+              <li key={p.name}>
+                <strong className="text-yellow-200">{p.name}</strong> — {p.issue}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-[11px] text-yellow-200/50">
+            O alerta por e-mail é enviado automaticamente todos os dias às 18h.
+          </p>
+        </div>
+      )}
 
       {status === 'loading' && <LoadingState className="py-16" />}
 
@@ -776,6 +1065,9 @@ export function AdminTimeRecords() {
           )}
         </>
       )}
+
+      {/* VIEW: Horas Mensais (carrega dados só quando a aba abre) */}
+      {viewMode === 'hours' && <MonthlyHoursReport employees={employees} />}
     </>
   )
 }

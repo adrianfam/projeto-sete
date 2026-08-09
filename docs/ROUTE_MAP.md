@@ -50,7 +50,7 @@ Layout raiz: `RootLayout` (Navbar + Footer + WhatsAppFloat).
 | `/admin/contact` | `AdminContact` | Caixa de entrada do formulário de contato |
 | `/admin/media` | `AdminMedia` | Gerenciamento de assets de mídia (upload ledger) |
 | `/admin/employees` | `AdminEmployees` | CRUD de colaboradores + resumo "Hoje" (registros do dia) e atalho "Ver pontos" |
-| `/admin/time-records` | `AdminTimeRecords` | Centro de controle: timeline visual, lista com GPS, filtro por período, corrigir/excluir registros |
+| `/admin/time-records` | `AdminTimeRecords` | Centro de controle: timeline visual, lista com GPS, filtro por período, corrigir/excluir registros, relatório mensal de horas, exportação CSV e alertas de pendências do dia |
 | `*` | `NotFound` | 404 no admin |
 
 ---
@@ -103,6 +103,7 @@ Layout raiz: `RootLayout` (Navbar + Footer + WhatsAppFloat).
 | `GET` | `/admin/time-records/daily` | Registros do dia atual (dashboard) |
 | `PATCH` | `/admin/time-records/:id` | Corrigir registro (recordType e/ou recordedAt) |
 | `DELETE` | `/admin/time-records/:id` | Excluir registro (batida errada/duplicada) |
+| `GET/POST` | `/cron/daily-points` | Cron diário (18h BRT): verifica pendências de ponto e envia e-mail para `ADMIN_NOTIFY_EMAIL` (protegido por `CRON_SECRET` quando setada) |
 | `GET` | `/admin/media` | Lista de assets de mídia (ledger) |
 | `DELETE` | `/admin/media/:id` | Deletar asset (storage + ledger) |
 

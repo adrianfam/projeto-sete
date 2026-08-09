@@ -18,6 +18,7 @@ import { adminRoutes } from './routes/admin'
 import { adminClientRoutes } from './routes/adminClient'
 import { clienteRoutes } from './routes/cliente'
 import { pontoRoutes } from './routes/ponto'
+import { cronRoutes } from './routes/cron'
 
 /** Constroi a instância Fastify (reutilizada por dev e pelo adapter Vercel). */
 export async function buildServer(): Promise<FastifyInstance> {
@@ -48,6 +49,7 @@ export async function buildServer(): Promise<FastifyInstance> {
       await api.register(adminClientRoutes)
       await api.register(clienteRoutes)
       await api.register(pontoRoutes)
+      await api.register(cronRoutes)
     },
     { prefix: '/api' },
   )

@@ -12,6 +12,9 @@
       "maxDuration": 20
     }
   },
+  "crons": [
+    { "path": "/api/cron/daily-points", "schedule": "0 21 * * *" }
+  ],
   "headers": [
     {
       "source": "/(.*)",
