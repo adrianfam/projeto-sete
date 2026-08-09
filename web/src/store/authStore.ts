@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabaseClient'
 import { setAdminToken } from '@/lib/adminToken'
+import { setActiveProfile } from '@/lib/activeProfile'
 
 function syncToken(session: Session | null) {
   setAdminToken(session?.access_token ?? null)
@@ -28,12 +29,15 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   hydrate: async () => {
     if (!supabase) {
+      setActiveProfile(null)
       set({ loading: false })
       return
     }
     const { data } = await supabase.auth.getSession()
     syncToken(data.session)
     set({ session: data.session, user: data.session?.user ?? null, loading: false })
+    // Sem sessão persistida, descarta marcador de perfil órfão
+    if (!data.session) setActiveProfile(null)
 
     supabase.auth.onAuthStateChange((_event, session) => {
       syncToken(session)
@@ -60,6 +64,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   signOut: async () => {
     if (supabase) await supabase.auth.signOut()
     syncToken(null)
+    setActiveProfile(null)
     set({ session: null, user: null, error: null })
   },
 }))

@@ -9,7 +9,28 @@ export const navItems = [
   { label: 'Depoimentos', href: '/testimonials' },
   { label: 'Blog', href: '/blog' },
   { label: 'Contato', href: '/contato' },
-  { label: 'Área do Cliente', href: '/cliente' },
+] as const
+
+/** Perfis de acesso — dropdown da navbar (cliente, admin, colaborador). */
+export const accessLinks = [
+  {
+    label: 'Cliente',
+    href: '/cliente',
+    description: 'Orçamentos, projetos e inspirações',
+    icon: 'cliente',
+  },
+  {
+    label: 'Admin',
+    href: '/admin',
+    description: 'Gestão completa do site',
+    icon: 'admin',
+  },
+  {
+    label: 'Colaborador',
+    href: '/colaborador',
+    description: 'Ponto eletrônico e extrato de horas',
+    icon: 'colaborador',
+  },
 ] as const
 
 /** Itens do menu do admin. */

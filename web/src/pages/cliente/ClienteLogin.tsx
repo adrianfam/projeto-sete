@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Seo } from '@/components/seo/Seo'
 import { useAuthStore } from '@/store/authStore'
+import { setActiveProfile } from '@/lib/activeProfile'
 
 export function ClienteLogin() {
   const navigate = useNavigate()
@@ -18,6 +19,7 @@ export function ClienteLogin() {
     const ok = await signIn(email.trim(), password)
     setLoading(false)
     if (ok) {
+      setActiveProfile('cliente')
       navigate('/cliente', { replace: true })
     } else {
       setError('Não foi possível entrar. Verifique e-mail e senha.')
@@ -27,16 +29,19 @@ export function ClienteLogin() {
   return (
     <>
       <Seo title="Área do Cliente — Projeto Sete" noindex path="/cliente/login" />
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-charcoal to-ink px-6">
+      <div className="from-charcoal to-ink flex min-h-screen flex-col items-center justify-center bg-gradient-to-b px-6">
         <div className="w-full max-w-sm text-center">
-          <p className="font-serif text-3xl text-paper">
+          <p className="text-paper font-serif text-3xl">
             Projeto <span className="text-brass">Sete</span>
           </p>
-          <p className="mt-2 text-mist">Acesse seu espaço para acompanhar seu projeto.</p>
+          <p className="text-mist mt-2">Acesse seu espaço para acompanhar seu projeto.</p>
 
           <form onSubmit={onSubmit} className="mt-10 space-y-5 text-left">
             <div>
-              <label className="block text-xs uppercase tracking-eyebrow text-mist" htmlFor="cliente-email">
+              <label
+                className="tracking-eyebrow text-mist block text-xs uppercase"
+                htmlFor="cliente-email"
+              >
                 E-mail
               </label>
               <input
@@ -46,12 +51,15 @@ export function ClienteLogin() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-2 w-full rounded-lg border border-graphite-light bg-graphite px-4 py-3 text-paper outline-none transition-colors focus:border-brass"
+                className="border-graphite-light bg-graphite text-paper focus:border-brass mt-2 w-full rounded-lg border px-4 py-3 outline-none transition-colors"
                 placeholder="seu@email.com"
               />
             </div>
             <div>
-              <label className="block text-xs uppercase tracking-eyebrow text-mist" htmlFor="cliente-password">
+              <label
+                className="tracking-eyebrow text-mist block text-xs uppercase"
+                htmlFor="cliente-password"
+              >
                 Senha
               </label>
               <input
@@ -61,23 +69,27 @@ export function ClienteLogin() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-2 w-full rounded-lg border border-graphite-light bg-graphite px-4 py-3 text-paper outline-none transition-colors focus:border-brass"
+                className="border-graphite-light bg-graphite text-paper focus:border-brass mt-2 w-full rounded-lg border px-4 py-3 outline-none transition-colors"
                 placeholder="••••••••"
               />
             </div>
 
-            {error && <p className="text-sm text-error" role="alert">{error}</p>}
+            {error && (
+              <p className="text-error text-sm" role="alert">
+                {error}
+              </p>
+            )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-brass px-6 py-3.5 font-semibold text-ink transition-all hover:bg-brass-soft active:scale-[0.98] disabled:opacity-50"
+              className="bg-brass text-ink hover:bg-brass-soft w-full rounded-lg px-6 py-3.5 font-semibold transition-all active:scale-[0.98] disabled:opacity-50"
             >
               {loading ? 'Entrando…' : 'Entrar'}
             </button>
           </form>
 
-          <p className="mt-8 text-sm text-mist">
+          <p className="text-mist mt-8 text-sm">
             Ainda não tem conta?{' '}
             <Link to="/cliente/cadastro" className="text-brass-soft hover:underline">
               Cadastre-se sem compromisso
