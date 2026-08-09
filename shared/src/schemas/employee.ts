@@ -24,6 +24,17 @@ export const timeRecordInputSchema = z.object({
 })
 export type TimeRecordInput = z.infer<typeof timeRecordInputSchema>
 
+/** Correção administrativa de um registro de ponto (admin corrige tipo e/ou horário). */
+export const timeRecordUpdateSchema = z
+  .object({
+    recordType: recordTypeEnum.optional(),
+    recordedAt: z.string().datetime().optional(),
+  })
+  .refine((v) => v.recordType !== undefined || v.recordedAt !== undefined, {
+    message: 'Informe pelo menos um campo para corrigir o registro.',
+  })
+export type TimeRecordUpdate = z.infer<typeof timeRecordUpdateSchema>
+
 export const pontoLoginSchema = z.object({
   matricula: z.number().int().positive(),
   pin: z.string().length(4).regex(/^\d{4}$/, 'PIN deve ter exatamente 4 dígitos numéricos'),

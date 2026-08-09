@@ -49,8 +49,8 @@ Layout raiz: `RootLayout` (Navbar + Footer + WhatsAppFloat).
 | `/admin/comments` | `AdminComments` | Moderação de comentários (pending/approved/rejected/spam) |
 | `/admin/contact` | `AdminContact` | Caixa de entrada do formulário de contato |
 | `/admin/media` | `AdminMedia` | Gerenciamento de assets de mídia (upload ledger) |
-| `/admin/employees` | `AdminEmployees` | CRUD de colaboradores (ponto eletrônico) |
-| `/admin/time-records` | `AdminTimeRecords` | Histórico de registros de ponto com timeline visual e resumo diário |
+| `/admin/employees` | `AdminEmployees` | CRUD de colaboradores + resumo "Hoje" (registros do dia) e atalho "Ver pontos" |
+| `/admin/time-records` | `AdminTimeRecords` | Centro de controle: timeline visual, lista com GPS, filtro por período, corrigir/excluir registros |
 | `*` | `NotFound` | 404 no admin |
 
 ---
@@ -99,8 +99,10 @@ Layout raiz: `RootLayout` (Navbar + Footer + WhatsAppFloat).
 | `GET` | `/admin/metrics` | Métricas do dashboard (KPIs) |
 | `GET/POST` | `/admin/employees` | CRUD de colaboradores (gera PIN) |
 | `GET/PATCH` | `/admin/employees/:id` | Atualizar/resetar PIN de colaborador |
-| `GET` | `/admin/time-records` | `?employee_id=&date_from=&date_to=` | Histórico de registros de ponto |
+| `GET` | `/admin/time-records` | `?employee_id=&date_from=&date_to=&limit=` | Histórico de registros de ponto |
 | `GET` | `/admin/time-records/daily` | Registros do dia atual (dashboard) |
+| `PATCH` | `/admin/time-records/:id` | Corrigir registro (recordType e/ou recordedAt) |
+| `DELETE` | `/admin/time-records/:id` | Excluir registro (batida errada/duplicada) |
 | `GET` | `/admin/media` | Lista de assets de mídia (ledger) |
 | `DELETE` | `/admin/media/:id` | Deletar asset (storage + ledger) |
 

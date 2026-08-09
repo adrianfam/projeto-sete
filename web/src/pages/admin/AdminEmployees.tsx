@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Seo } from '@/components/seo/Seo'
 import { useAdminApi, adminRequest } from '@/hooks/useAdminApi'
 import { Button } from '@/components/ui/Button'
 import { LoadingState } from '@/components/ui/LoadingState'
 import { ApiError } from '@/lib/apiClient'
+import { formatTime } from '@/lib/utils'
 
 interface Employee {
   id: string
@@ -21,6 +23,20 @@ interface CreatedEmployee {
   generatedPin: string
 }
 
+interface TodayRecord {
+  id: string
+  employee_id: string
+  record_type: 'entrada' | 'almoco_ida' | 'almoco_volta' | 'saida'
+  recorded_at: string
+}
+
+const TODAY_LABELS: Record<string, string> = {
+  entrada: 'Entrada',
+  almoco_ida: 'Almoço',
+  almoco_volta: 'Retorno',
+  saida: 'Saída',
+}
+
 function phoneMask(value: string) {
   const digits = value.replace(/\D/g, '').slice(0, 11)
   if (digits.length <= 10) {
@@ -30,8 +46,32 @@ function phoneMask(value: string) {
 }
 
 export function AdminEmployees() {
+  const navigate = useNavigate()
   const { data, status, refetch } = useAdminApi<{ items: Employee[] }>('/admin/employees')
   const items = data?.items ?? []
+
+  // Registros de hoje (para o resumo "Hoje" de cada colaborador)
+  const { data: dailyData } = useAdminApi<{ items: TodayRecord[] }>('/admin/time-records/daily')
+  const todayByEmp: Record<string, TodayRecord[]> = {}
+  ;(dailyData?.items ?? []).forEach((r) => {
+    if (!todayByEmp[r.employee_id]) todayByEmp[r.employee_id] = []
+    todayByEmp[r.employee_id].push(r)
+  })
+
+  const todayBadge = (empId: string) => {
+    const recs = todayByEmp[empId]
+    if (!recs || recs.length === 0) {
+      return { label: 'Sem registro', cls: 'border-graphite-light text-mist' }
+    }
+    const sorted = [...recs].sort(
+      (a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime(),
+    )
+    const last = sorted[sorted.length - 1]
+    return {
+      label: `${TODAY_LABELS[last.record_type] ?? last.record_type} ${formatTime(last.recorded_at)} · ${recs.length} registro${recs.length !== 1 ? 's' : ''}`,
+      cls: 'border-brass/40 text-brass',
+    }
+  }
 
   const [draft, setDraft] = useState({ fullName: '', phone: '', role: '', birthDate: '' })
   const [saving, setSaving] = useState(false)
@@ -185,17 +225,25 @@ export function AdminEmployees() {
                 <th className="py-3 pr-4">Nome</th>
                 <th className="py-3 pr-4">Telefone</th>
                 <th className="py-3 pr-4">Cargo</th>
+                <th className="py-3 pr-4">Hoje</th>
                 <th className="py-3 pr-4">Ativo</th>
                 <th className="py-3 pr-4">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-graphite-light">
-              {items.map((emp) => (
+              {items.map((emp) => {
+                const badge = todayBadge(emp.id)
+                return (
                 <tr key={emp.id} className="hover:bg-graphite-light/30">
                   <td className="py-3 pr-4 font-mono text-xs text-mist">{emp.matricula}</td>
                   <td className="py-3 pr-4 font-medium text-paper">{emp.full_name}</td>
                   <td className="py-3 pr-4 text-mist">{emp.phone}</td>
                   <td className="py-3 pr-4 text-mist">{emp.role}</td>
+                  <td className="py-3 pr-4">
+                    <span className={`badge ${badge.cls}`}>
+                      {badge.label}
+                    </span>
+                  </td>
                   <td className="py-3 pr-4">
                     <button
                       onClick={() => toggleActive(emp)}
@@ -205,7 +253,13 @@ export function AdminEmployees() {
                     </button>
                   </td>
                   <td className="py-3 pr-4">
-                    <div className="flex gap-3">
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        onClick={() => navigate(`/admin/time-records?employee_id=${emp.id}`)}
+                        className="text-xs text-brass link-underline"
+                      >
+                        Ver pontos
+                      </button>
                       <button onClick={() => startEdit(emp)} className="text-xs text-brass link-underline">Editar</button>
                       <button onClick={() => resetPin(emp.id)} disabled={resetPinId === emp.id} className="text-xs text-brass link-underline">
                         {resetPinId === emp.id ? '…' : 'Resetar PIN'}
@@ -213,7 +267,8 @@ export function AdminEmployees() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                )
+              })}
             </tbody>
           </table>
         </div>

@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import type { FastifyPluginAsync } from 'fastify'
 import { getSupabaseAdmin } from '../lib/supabaseAdmin'
 import { requireAdmin } from '../lib/auth'
+import { timeRecordUpdateSchema } from '@projeto-sete/shared'
 
 /** /api/auth/me + /api/admin/metrics */
 export const adminRoutes: FastifyPluginAsync = async (app) => {
@@ -128,7 +129,11 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
       .limit(Number(query.limit) || 500)
     if (query.employee_id) q = q.eq('employee_id', query.employee_id)
     if (query.date_from) q = q.gte('recorded_at', query.date_from)
-    if (query.date_to) q = q.lte('recorded_at', query.date_to + 'T23:59:59.999Z')
+    if (query.date_to) {
+      // Aceita ISO completo (com 'T') ou apenas data (YYYY-MM-DD)
+      const to = query.date_to.includes('T') ? query.date_to : query.date_to + 'T23:59:59.999Z'
+      q = q.lte('recorded_at', to)
+    }
     const { data, error } = await q
     if (error) return reply.code(500).send({ message: error.message })
     return { items: data ?? [] }
@@ -146,6 +151,38 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
       .order('recorded_at', { ascending: false })
     if (error) return reply.code(500).send({ message: error.message })
     return { items: data ?? [] }
+  })
+
+  // Corrige um registro de ponto (tipo e/ou horário) — controle administrativo.
+  app.patch('/admin/time-records/:id', { preHandler: requireAdminAndGuard }, async (req, reply) => {
+    const { id } = req.params as { id: string }
+    const parsed = timeRecordUpdateSchema.safeParse(req.body)
+    if (!parsed.success) {
+      return reply.code(400).send({ message: 'Dados inválidos para correção do registro.' })
+    }
+    const payload: Record<string, unknown> = {}
+    if (parsed.data.recordType) payload.record_type = parsed.data.recordType
+    if (parsed.data.recordedAt) payload.recorded_at = parsed.data.recordedAt
+    const sb = getSupabaseAdmin()
+    const { data, error } = await sb
+      .from('time_records')
+      .update(payload)
+      .eq('id', id)
+      .select('id,employee_id,record_type,latitude,longitude,recorded_at')
+      .maybeSingle()
+    if (error) return reply.code(400).send({ message: error.message })
+    if (!data) return reply.code(404).send({ message: 'Registro não encontrado.' })
+    return { record: data }
+  })
+
+  // Exclui um registro de ponto (ex.: batida errada/duplicada) — controle administrativo.
+  app.delete('/admin/time-records/:id', { preHandler: requireAdminAndGuard }, async (req, reply) => {
+    const { id } = req.params as { id: string }
+    const sb = getSupabaseAdmin()
+    const { error, count } = await sb.from('time_records').delete({ count: 'exact' }).eq('id', id)
+    if (error) return reply.code(400).send({ message: error.message })
+    if (!count) return reply.code(404).send({ message: 'Registro não encontrado.' })
+    return reply.code(204).send()
   })
 
   // Lista todos os assets de mídia (upload ledger).

@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Seo } from '@/components/seo/Seo'
-import { useAdminApi } from '@/hooks/useAdminApi'
+import { useAdminApi, adminRequest } from '@/hooks/useAdminApi'
 import { LoadingState } from '@/components/ui/LoadingState'
+import { ApiError } from '@/lib/apiClient'
 import { formatTime } from '@/lib/utils'
 
 interface TimeRecord {
@@ -48,7 +50,54 @@ const RECORD_ORDER: Record<string, number> = {
 }
 
 // ---------------------------------------------------------------------------
-// Componente de Timeline Visual para um colaborador
+// Helpers
+// ---------------------------------------------------------------------------
+/** "2026-08-09T07:52" (local, para input datetime-local) a partir de um ISO. */
+function toLocalInputValue(iso: string): string {
+  const d = new Date(iso)
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
+/** Valor do input datetime-local (local) → ISO UTC, ou null se vazio/inválido. */
+function fromLocalInputValue(v: string): string | null {
+  if (!v) return null
+  const d = new Date(v)
+  if (Number.isNaN(d.getTime())) return null
+  return d.toISOString()
+}
+
+/** Minutos trabalhados no dia (entrada→saída, descontando o intervalo de almoço). */
+function workMinutes(records: TimeRecord[]): number | null {
+  const entrada = records.find((r) => r.record_type === 'entrada')
+  const saida = records.find((r) => r.record_type === 'saida')
+  if (!entrada || !saida) return null
+  let total = new Date(saida.recorded_at).getTime() - new Date(entrada.recorded_at).getTime()
+  const almocoIda = records.find((r) => r.record_type === 'almoco_ida')
+  const almocoVolta = records.find((r) => r.record_type === 'almoco_volta')
+  if (almocoIda && almocoVolta) {
+    total -= new Date(almocoVolta.recorded_at).getTime() - new Date(almocoIda.recorded_at).getTime()
+  }
+  if (total <= 0) return null
+  return Math.round(total / 60_000)
+}
+
+function formatMinutes(min: number): string {
+  const h = Math.floor(min / 60)
+  const m = min % 60
+  return `${h}h ${String(m).padStart(2, '0')}min`
+}
+
+function formatDateShort(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString('pt-BR')
+  } catch {
+    return ''
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Componente de Timeline Visual para um colaborador (dia único)
 // ---------------------------------------------------------------------------
 function EmployeeTimeline({
   employee,
@@ -73,6 +122,7 @@ function EmployeeTimeline({
 
   // Última localização (compatível com ES2020)
   const lastWithLocation = [...sorted].reverse().find((r) => r.latitude && r.longitude)
+  const minutes = workMinutes(sorted)
 
   return (
     <div className="card-line bg-graphite p-5 transition-all hover:border-brass/40">
@@ -191,8 +241,8 @@ function EmployeeTimeline({
       </div>
 
       {/* Resumo do expediente */}
-      {isComplete && sorted.length >= 2 && (
-        <div className="mt-4 flex items-center justify-center gap-4 rounded-lg bg-green-900/20 border border-green-800/50 px-4 py-2.5 text-xs text-green-400">
+      {isComplete && sorted.length >= 2 && minutes !== null && (
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 rounded-lg bg-green-900/20 border border-green-800/50 px-4 py-2.5 text-xs text-green-400">
           <span>
             🕐 Entrada{' '}
             <strong>{formatTime(sorted.find((r) => r.record_type === 'entrada')!.recorded_at)}</strong>
@@ -201,6 +251,10 @@ function EmployeeTimeline({
           <span>
             🏁 Saída{' '}
             <strong>{formatTime(sorted.find((r) => r.record_type === 'saida')!.recorded_at)}</strong>
+          </span>
+          <span className="text-green-700">·</span>
+          <span>
+            ⏱️ Total: <strong>{formatMinutes(minutes)}</strong>
           </span>
         </div>
       )}
@@ -262,24 +316,24 @@ function DailySummaryCards({
       value: daysComplete,
       sub: 'entrada + saída registrados',
       icon: '✅',
-      color: 'text-green-600',
-      bg: 'bg-green-50',
+      color: 'text-green-400',
+      bg: 'bg-green-900/10',
     },
     {
       label: 'Em andamento',
       value: inProgress,
       sub: 'ainda não finalizaram',
       icon: '⏳',
-      color: 'text-yellow-600',
-      bg: 'bg-yellow-50',
+      color: 'text-yellow-400',
+      bg: 'bg-yellow-900/10',
     },
     {
       label: 'Total de registros',
       value: totalRecords,
-      sub: 'nesta data',
+      sub: 'no período',
       icon: '📋',
-      color: 'text-blue-600',
-      bg: 'bg-blue-50',
+      color: 'text-blue-400',
+      bg: 'bg-blue-900/10',
     },
   ]
 
@@ -318,18 +372,245 @@ function DailySummaryCards({
 }
 
 // ---------------------------------------------------------------------------
+// Linha de registro na Lista — com GPS, edição inline e exclusão
+// ---------------------------------------------------------------------------
+function RecordRow({
+  record,
+  showDate,
+  onChanged,
+}: {
+  record: TimeRecord
+  showDate: boolean
+  onChanged: () => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [draftType, setDraftType] = useState<string>(record.record_type)
+  const [draftLocal, setDraftLocal] = useState(toLocalInputValue(record.recorded_at))
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const mapsUrl =
+    record.latitude && record.longitude
+      ? `https://www.google.com/maps?q=${record.latitude},${record.longitude}`
+      : null
+
+  const save = async () => {
+    setSaving(true)
+    setError(null)
+    try {
+      const body: Record<string, unknown> = { recordType: draftType }
+      const iso = fromLocalInputValue(draftLocal)
+      if (iso) body.recordedAt = iso
+      await adminRequest(`/admin/time-records/${record.id}`, { method: 'PATCH', body })
+      setEditing(false)
+      onChanged()
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Erro ao salvar o registro.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const remove = async () => {
+    if (!window.confirm('Excluir este registro de ponto? Essa ação não pode ser desfeita.')) return
+    setSaving(true)
+    setError(null)
+    try {
+      await adminRequest(`/admin/time-records/${record.id}`, { method: 'DELETE' })
+      onChanged()
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Erro ao excluir o registro.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (editing) {
+    return (
+      <div className="rounded-lg border border-brass/40 bg-ink/60 px-4 py-3">
+        <p className="mb-2 text-xs uppercase tracking-eyebrow text-brass">
+          ✏️ Corrigindo registro
+        </p>
+        <div className="flex flex-wrap items-end gap-3">
+          <div>
+            <label className="mb-1 block text-[11px] text-mist">Tipo</label>
+            <select
+              value={draftType}
+              onChange={(e) => setDraftType(e.target.value)}
+              className="admin-input w-auto"
+            >
+              {Object.entries(RECORD_LABELS).map(([key, label]) => (
+                <option key={key} value={key}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-[11px] text-mist">Data e hora</label>
+            <input
+              type="datetime-local"
+              value={draftLocal}
+              onChange={(e) => setDraftLocal(e.target.value)}
+              className="admin-input w-auto"
+            />
+          </div>
+          <div className="flex items-center gap-2 pb-0.5">
+            <button
+              onClick={save}
+              disabled={saving}
+              className="rounded-md bg-brass px-3 py-2 text-xs font-medium text-charcoal hover:opacity-90 disabled:opacity-50"
+            >
+              {saving ? 'Salvando…' : 'Salvar'}
+            </button>
+            <button
+              onClick={() => {
+                setEditing(false)
+                setError(null)
+              }}
+              disabled={saving}
+              className="rounded-md border border-graphite-light px-3 py-2 text-xs text-mist hover:text-paper"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+        {error && <p className="mt-2 text-xs text-error">{error}</p>}
+      </div>
+    )
+  }
+
+  return (
+    <div
+      className={`flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3 ${RECORD_COLORS[record.record_type]}`}
+    >
+      <div className="flex items-center gap-3">
+        <span className="text-sm font-medium">{RECORD_LABELS[record.record_type]}</span>
+        <span className="text-xs opacity-60">
+          {showDate ? `${formatDateShort(record.recorded_at)} · ` : ''}
+          {formatTime(record.recorded_at)}
+        </span>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        {record.latitude && record.longitude ? (
+          <span className="inline-flex items-center gap-1 text-[11px] font-mono opacity-70">
+            📍 {record.latitude.toFixed(5)}, {record.longitude.toFixed(5)}
+            {mapsUrl && (
+              <a
+                href={mapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-brass link-underline"
+              >
+                Mapa
+              </a>
+            )}
+          </span>
+        ) : (
+          <span className="text-[11px] opacity-50">📍 sem GPS</span>
+        )}
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              setDraftType(record.record_type)
+              setDraftLocal(toLocalInputValue(record.recorded_at))
+              setError(null)
+              setEditing(true)
+            }}
+            className="text-xs text-brass link-underline"
+            title="Corrigir tipo ou horário"
+          >
+            ✏️ Corrigir
+          </button>
+          <button
+            onClick={remove}
+            disabled={saving}
+            className="text-xs text-red-400 link-underline hover:text-red-300 disabled:opacity-50"
+            title="Excluir registro"
+          >
+            🗑️ Excluir
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Página principal
 // ---------------------------------------------------------------------------
 type ViewMode = 'list' | 'daily'
+type Period = 'today' | '7d' | 'month' | 'prevMonth' | 'all'
+
+const PERIOD_OPTIONS: { key: Period; label: string }[] = [
+  { key: 'today', label: 'Hoje' },
+  { key: '7d', label: 'Últimos 7 dias' },
+  { key: 'month', label: 'Este mês' },
+  { key: 'prevMonth', label: 'Mês anterior' },
+  { key: 'all', label: 'Tudo' },
+]
+
+/** Limites do período em ISO UTC (dia local do admin) — recorded_at é timestamptz (UTC). */
+function periodRange(period: Period): { from?: string; to?: string } {
+  const now = new Date()
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
+  const endOfDay = (d: Date) =>
+    new Date(new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime() - 1)
+  switch (period) {
+    case 'today':
+      return { from: startOfDay(now).toISOString(), to: endOfDay(now).toISOString() }
+    case '7d': {
+      const from = new Date(now)
+      from.setDate(from.getDate() - 6)
+      return { from: startOfDay(from).toISOString(), to: endOfDay(now).toISOString() }
+    }
+    case 'month':
+      return {
+        from: startOfDay(new Date(now.getFullYear(), now.getMonth(), 1)).toISOString(),
+        to: endOfDay(new Date(now.getFullYear(), now.getMonth() + 1, 0)).toISOString(),
+      }
+    case 'prevMonth':
+      return {
+        from: startOfDay(new Date(now.getFullYear(), now.getMonth() - 1, 1)).toISOString(),
+        to: endOfDay(new Date(now.getFullYear(), now.getMonth(), 0)).toISOString(),
+      }
+    case 'all':
+      return {}
+  }
+}
 
 export function AdminTimeRecords() {
+  const [searchParams] = useSearchParams()
   const [viewMode, setViewMode] = useState<ViewMode>('daily')
-  const [selectedEmployee, setSelectedEmployee] = useState<string>('')
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
+  const [selectedEmployee, setSelectedEmployee] = useState<string>(
+    () => searchParams.get('employee_id') ?? '',
+  )
+  const [period, setPeriod] = useState<Period>('today')
+
+  // Deep-link do menu Colaboradores (?employee_id=...)
+  useEffect(() => {
+    const emp = searchParams.get('employee_id')
+    if (emp) setSelectedEmployee(emp)
+  }, [searchParams])
+
+  // A visão "Resumo Diário" só faz sentido para um dia único
+  useEffect(() => {
+    if (period !== 'today') setViewMode('list')
+  }, [period])
 
   const { data: empData } = useAdminApi<{ items: Employee[] }>('/admin/employees')
-  const recordsPath = `/admin/time-records?date_from=${date}&limit=500${selectedEmployee ? `&employee_id=${selectedEmployee}` : ''}`
-  const { data: recordsData, status } = useAdminApi<{ items: TimeRecord[] }>(recordsPath)
+
+  const range = periodRange(period)
+  const params = new URLSearchParams()
+  if (selectedEmployee) params.set('employee_id', selectedEmployee)
+  if (range.from) params.set('date_from', range.from)
+  if (range.to) params.set('date_to', range.to)
+  params.set('limit', period === 'all' ? '2000' : '1000')
+  const recordsPath = `/admin/time-records?${params.toString()}`
+
+  const { data: recordsData, status, refetch } = useAdminApi<{ items: TimeRecord[] }>(recordsPath)
   const employees = empData?.items ?? []
   const records = recordsData?.items ?? []
 
@@ -351,11 +632,10 @@ export function AdminTimeRecords() {
   return (
     <>
       <Seo title="Pontos — Projeto Sete Admin" noindex />
-      <h1 className="font-serif text-3xl">Pontos Eletrônicos</h1>
+      <h1 className="font-serif text-3xl text-paper">Pontos Eletrônicos</h1>
       <p className="mt-2 text-smoke">
-        {viewMode === 'daily'
-          ? 'Resumo visual dos registros de ponto do dia.'
-          : 'Histórico detalhado de registros dos colaboradores.'}
+        Controle total dos registros de ponto: visualize, corrija horários/tipos e exclua
+        batidas erradas, sempre com a localização GPS de cada registro.
       </p>
 
       {/* Tabs */}
@@ -364,10 +644,15 @@ export function AdminTimeRecords() {
           <button
             key={tab.key}
             onClick={() => setViewMode(tab.key)}
+            disabled={period !== 'today' && tab.key === 'daily'}
             className={`rounded-md px-4 py-2 text-sm font-medium transition-all ${
               viewMode === tab.key
                 ? 'admin-tab-active bg-brass text-charcoal font-medium shadow-sm'
                 : 'admin-tab text-mist hover:text-paper'
+            } ${
+              period !== 'today' && tab.key === 'daily'
+                ? 'cursor-not-allowed opacity-40 hover:text-mist'
+                : ''
             }`}
           >
             {tab.label}
@@ -389,12 +674,17 @@ export function AdminTimeRecords() {
             </option>
           ))}
         </select>
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
+        <select
+          value={period}
+          onChange={(e) => setPeriod(e.target.value as Period)}
           className="admin-input w-auto"
-        />
+        >
+          {PERIOD_OPTIONS.map((opt) => (
+            <option key={opt.key} value={opt.key}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       {status === 'loading' && <LoadingState className="py-16" />}
@@ -450,55 +740,35 @@ export function AdminTimeRecords() {
         <>
           {Object.keys(grouped).length === 0 ? (
             <p className="py-16 text-center text-mist">
-              Nenhum registro encontrado para esta data.
+              Nenhum registro encontrado para o período selecionado.
             </p>
           ) : (
             <div className="mt-6 space-y-6">
               {Object.entries(grouped).map(([empId, empRecords]) => (
                 <div key={empId} className="card-line bg-graphite p-5">
-                  <h3 className="font-medium text-paper">
-                    {getEmployeeName(empId)}
-                  </h3>
-                  <div className="mt-3 space-y-2">
-                    {empRecords
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="font-medium text-paper">
+                      {getEmployeeName(empId)}
+                      <span className="ml-2 text-xs text-mist">
+                        {empRecords.length} registro{empRecords.length !== 1 ? 's' : ''}
+                      </span>
+                    </h3>
+                  </div>
+                  <div className="space-y-2">
+                    {[...empRecords]
                       .sort(
                         (a, b) =>
                           new Date(a.recorded_at).getTime() -
                           new Date(b.recorded_at).getTime(),
                       )
-                      .map((rec) => {
-                        const mapsUrl =
-                          rec.latitude && rec.longitude
-                            ? `https://www.google.com/maps?q=${rec.latitude},${rec.longitude}`
-                            : null
-                        return (
-                          <div
-                            key={rec.id}
-                            className={`flex items-center justify-between rounded-lg border px-4 py-3 ${RECORD_COLORS[rec.record_type]}`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <span className="text-sm font-medium">
-                                {RECORD_LABELS[rec.record_type]}
-                              </span>
-                              <span className="text-xs opacity-60">
-                                {formatTime(rec.recorded_at)}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {mapsUrl && (
-                                <a
-                                  href={mapsUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-xs text-brass link-underline"
-                                >
-                                  📍 Mapa
-                                </a>
-                              )}
-                            </div>
-                          </div>
-                        )
-                      })}
+                      .map((rec) => (
+                        <RecordRow
+                          key={rec.id}
+                          record={rec}
+                          showDate={period !== 'today'}
+                          onChanged={refetch}
+                        />
+                      ))}
                   </div>
                 </div>
               ))}
