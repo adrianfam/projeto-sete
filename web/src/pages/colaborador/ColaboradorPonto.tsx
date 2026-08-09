@@ -4,6 +4,7 @@ import { Seo } from '@/components/seo/Seo'
 import { ApiError } from '@/lib/apiClient'
 import { pontoRequest } from '@/lib/pontoClient'
 import { getUserPosition, GeoError } from '@/lib/geo'
+import { GeoDiagnostics } from '@/components/ui/GeoDiagnostics'
 
 type StatusType = 'not_started' | 'working' | 'lunch' | 'back_from_lunch' | 'finished' | 'overtime'
 type RecordType = 'entrada' | 'almoco_ida' | 'almoco_volta' | 'saida'
@@ -267,6 +268,9 @@ export function ColaboradorPonto() {
                 >
                   Tentar novamente
                 </button>
+                <div className="mt-1 flex justify-center">
+                  <GeoDiagnostics dark />
+                </div>
               </div>
             )}
 

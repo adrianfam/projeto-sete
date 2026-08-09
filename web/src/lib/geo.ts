@@ -103,7 +103,7 @@ function mapPositionError(err: GeolocationPositionError): GeoError {
 }
 
 /** Estado da permissão de geolocalização, quando o navegador expõe via Permissions API. */
-type PermissionState = 'granted' | 'prompt' | 'denied' | 'unsupported'
+export type PermissionState = 'granted' | 'prompt' | 'denied' | 'unsupported'
 
 async function checkPermissionState(): Promise<PermissionState> {
   try {
@@ -181,4 +181,94 @@ export async function getUserPosition(): Promise<GeolocationPosition> {
       ? 'A localização demorou demais para ser obtida. Aproxime-se de uma janela ou área aberta, conecte-se a uma rede (Wi-Fi ou dados móveis) e tente novamente.'
       : 'Não foi possível identificar a sua localização. Ative a localização/GPS do aparelho, permita o acesso do navegador à localização e tente novamente.',
   )
+}
+
+// ---------------------------------------------------------------------------
+// Diagnóstico — usado pelo botão "Diagnóstico de localização" nas telas de ponto
+// ---------------------------------------------------------------------------
+
+export interface GeoDiagnosticsInfo {
+  /** navigator.geolocation existe? */
+  supported: boolean
+  /** A página está num contexto seguro (HTTPS/localhost)? */
+  secureContext: boolean
+  /** Estado da permissão segundo a Permissions API. */
+  permission: PermissionState
+  /** Navegador/dispositivo (para orientar o suporte). */
+  userAgent: string
+  /** Resultado de UM teste direto no Chrome (sem retry do app). */
+  probe: {
+    ok: boolean
+    /** Código do erro do navegador: 1 = negada, 2 = indisponível, 3 = timeout. */
+    code?: number
+    message?: string
+    elapsedMs?: number
+    coords?: { latitude: number; longitude: number; accuracy: number }
+  }
+}
+
+/** Código do erro do navegador → rótulo amigável. */
+export function geoErrorCodeLabel(code?: number): string {
+  switch (code) {
+    case 1:
+      return 'permissão negada'
+    case 2:
+      return 'indisponível (o sistema/rede não conseguiu a posição)'
+    case 3:
+      return 'timeout (demorou demais)'
+    default:
+      return 'desconhecido'
+  }
+}
+
+/**
+ * Executa UM teste direto de geolocalização no navegador e devolve o resultado
+ * estruturado — sem lançar exceções e sem as tentativas/retry do app. Serve
+ * para isolar se o problema é do ambiente (Windows/rede/navegador) ou do app.
+ */
+export async function diagnoseLocation(): Promise<GeoDiagnosticsInfo> {
+  const supported = 'geolocation' in navigator
+  const secureContext = window.isSecureContext ?? false
+  const permission = await checkPermissionState()
+
+  const probe = await new Promise<GeoDiagnosticsInfo['probe']>((resolve) => {
+    if (!supported) {
+      resolve({ ok: false, code: 0, message: 'navigator.geolocation não existe neste navegador.' })
+      return
+    }
+
+    const started = performance.now()
+    let done = false
+    const finish = (r: GeoDiagnosticsInfo['probe']) => {
+      if (done) return
+      done = true
+      resolve(r)
+    }
+
+    const watchdog = window.setTimeout(() => {
+      finish({ ok: false, code: 3, message: 'timeout do watchdog', elapsedMs: Math.round(performance.now() - started) })
+    }, 15_000)
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        clearTimeout(watchdog)
+        finish({
+          ok: true,
+          coords: {
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            accuracy: pos.coords.accuracy,
+          },
+          elapsedMs: Math.round(performance.now() - started),
+        })
+      },
+      (err) => {
+        clearTimeout(watchdog)
+        finish({ ok: false, code: err.code, message: err.message, elapsedMs: Math.round(performance.now() - started) })
+      },
+      { enableHighAccuracy: false, timeout: 12_000, maximumAge: 0 },
+    )
+  })
+
+  return { supported, secureContext, permission, userAgent: navigator.userAgent, probe }
 }

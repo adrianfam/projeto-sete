@@ -4,6 +4,7 @@ import { Seo } from '@/components/seo/Seo'
 import { ApiError } from '@/lib/apiClient'
 import { pontoRequest } from '@/lib/pontoClient'
 import { getUserPosition, GeoError } from '@/lib/geo'
+import { GeoDiagnostics } from '@/components/ui/GeoDiagnostics'
 
 /** Notificação simples via Browser Notification API. */
 function enviarNotificacao(acao: string) {
@@ -223,6 +224,9 @@ export function PontoRegistrar() {
                 >
                   Tentar novamente
                 </button>
+                <div className="mt-1 flex justify-center">
+                  <GeoDiagnostics />
+                </div>
               </div>
             )}
 
