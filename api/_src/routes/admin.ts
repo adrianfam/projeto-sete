@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import type { FastifyPluginAsync } from 'fastify'
 import { getSupabaseAdmin } from '../lib/supabaseAdmin'
 import { requireAdmin } from '../lib/auth'
-import { timeRecordUpdateSchema } from '@projeto-sete/shared'
+import { timeRecordManualCreateSchema, timeRecordUpdateSchema } from '@projeto-sete/shared'
 
 /** /api/auth/me + /api/admin/metrics */
 export const adminRoutes: FastifyPluginAsync = async (app) => {
@@ -137,6 +137,57 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
     const { data, error } = await q
     if (error) return reply.code(500).send({ message: error.message })
     return { items: data ?? [] }
+  })
+
+  // Registro manual de ponto em nome de um colaborador (ex.: esqueceu o celular).
+  app.post('/admin/time-records', { preHandler: requireAdminAndGuard }, async (req, reply) => {
+    const parsed = timeRecordManualCreateSchema.safeParse(req.body)
+    if (!parsed.success) {
+      return reply.code(400).send({ message: 'Dados inválidos para o registro manual.' })
+    }
+    const { employeeId, recordType, recordedAt } = parsed.data
+    const sb = getSupabaseAdmin()
+
+    // Verifica se o colaborador existe e está ativo
+    const { data: emp } = await sb
+      .from('employees')
+      .select('id,is_active,full_name')
+      .eq('id', employeeId)
+      .maybeSingle()
+    if (!emp) return reply.code(404).send({ message: 'Colaborador não encontrado.' })
+    if (!emp.is_active) {
+      return reply.code(400).send({ message: 'Colaborador inativo. Ative o cadastro antes de registrar o ponto.' })
+    }
+
+    // Anti-duplicata leve: mesmo tipo num intervalo de 30s (ex.: o colaborador
+    // já registrou pelo celular e o admin não percebeu). Não bloqueia o
+    // preenchimento retroativo de horários diferentes.
+    const targetMs = new Date(recordedAt).getTime()
+    const { data: lastRecords } = await sb
+      .from('time_records')
+      .select('record_type,recorded_at')
+      .eq('employee_id', employeeId)
+      .order('recorded_at', { ascending: false })
+      .limit(1)
+    const lastRecord = lastRecords?.[0]
+    if (
+      lastRecord &&
+      lastRecord.record_type === recordType &&
+      Math.abs(new Date(lastRecord.recorded_at).getTime() - targetMs) < 30_000
+    ) {
+      return reply.code(409).send({
+        message: 'Já existe um registro desse tipo nesse horário. Verifique a lista antes de registrar.',
+      })
+    }
+
+    // Sem GPS: registro feito manualmente pelo admin (colaborador sem celular)
+    const { data, error } = await sb
+      .from('time_records')
+      .insert({ employee_id: employeeId, record_type: recordType, recorded_at: recordedAt })
+      .select('id,employee_id,record_type,latitude,longitude,recorded_at')
+      .single()
+    if (error) return reply.code(500).send({ message: error.message })
+    return reply.code(201).send({ record: data })
   })
 
   // Relatório diário consolidado (admin dashboard)

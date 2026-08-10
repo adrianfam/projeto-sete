@@ -553,6 +553,121 @@ function RecordRow({
 }
 
 // ---------------------------------------------------------------------------
+// Registro manual de ponto em nome do colaborador (ex.: esqueceu o celular)
+// ---------------------------------------------------------------------------
+function ManualRegisterForm({
+  employees,
+  defaultEmployeeId,
+  onDone,
+}: {
+  employees: Employee[]
+  defaultEmployeeId: string
+  onDone: () => void
+}) {
+  const [employeeId, setEmployeeId] = useState(defaultEmployeeId)
+  const [recordType, setRecordType] = useState('entrada')
+  const [localValue, setLocalValue] = useState(() =>
+    toLocalInputValue(new Date().toISOString()),
+  )
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
+
+  const submit = async () => {
+    if (!employeeId) {
+      setError('Selecione o colaborador.')
+      return
+    }
+    const iso = fromLocalInputValue(localValue)
+    if (!iso) {
+      setError('Informe uma data e hora válidas.')
+      return
+    }
+    setSaving(true)
+    setError(null)
+    setSuccess(false)
+    try {
+      await adminRequest('/admin/time-records', {
+        method: 'POST',
+        body: { employeeId, recordType, recordedAt: iso },
+      })
+      setSuccess(true)
+      onDone()
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Erro ao registrar o ponto.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="mt-4 rounded-lg border border-brass/40 bg-ink/60 p-5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-medium text-brass">➕ Registrar ponto manual</p>
+        <p className="text-[11px] text-smoke">
+          Use quando o colaborador esqueceu o celular — registro sem GPS.
+        </p>
+      </div>
+      <div className="mt-4 flex flex-wrap items-end gap-3">
+        <div className="min-w-[220px] flex-1">
+          <label className="mb-1 block text-[11px] text-mist">Colaborador</label>
+          <select
+            value={employeeId}
+            onChange={(e) => setEmployeeId(e.target.value)}
+            className="admin-input w-full"
+          >
+            <option value="">Selecione…</option>
+            {employees
+              .filter((e) => e.is_active)
+              .map((emp) => (
+                <option key={emp.id} value={emp.id}>
+                  {emp.full_name} · #{emp.matricula}
+                </option>
+              ))}
+          </select>
+        </div>
+        <div>
+          <label className="mb-1 block text-[11px] text-mist">Tipo</label>
+          <select
+            value={recordType}
+            onChange={(e) => setRecordType(e.target.value)}
+            className="admin-input w-auto"
+          >
+            {Object.entries(RECORD_LABELS).map(([key, label]) => (
+              <option key={key} value={key}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="mb-1 block text-[11px] text-mist">Data e hora</label>
+          <input
+            type="datetime-local"
+            value={localValue}
+            onChange={(e) => setLocalValue(e.target.value)}
+            className="admin-input w-auto"
+          />
+        </div>
+        <div className="flex items-center gap-2 pb-0.5">
+          <button
+            onClick={submit}
+            disabled={saving}
+            className="rounded-md bg-brass px-4 py-2 text-xs font-medium text-charcoal hover:opacity-90 disabled:opacity-50 transition-opacity"
+          >
+            {saving ? 'Registrando…' : 'Registrar'}
+          </button>
+        </div>
+      </div>
+      {error && <p className="mt-3 text-xs text-error">{error}</p>}
+      {success && (
+        <p className="mt-3 text-xs text-green-400">✅ Ponto registrado com sucesso.</p>
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Relatório Mensal de Horas (aba "Horas Mensais") — monta o próprio fetch
 // ---------------------------------------------------------------------------
 interface DayHours {
@@ -800,6 +915,7 @@ export function AdminTimeRecords() {
     () => searchParams.get('employee_id') ?? '',
   )
   const [period, setPeriod] = useState<Period>('today')
+  const [showManual, setShowManual] = useState(false)
 
   // Deep-link do menu Colaboradores (?employee_id=...)
   useEffect(() => {
@@ -893,11 +1009,37 @@ export function AdminTimeRecords() {
   return (
     <>
       <Seo title="Pontos — Projeto Sete Admin" noindex />
-      <h1 className="font-serif text-3xl text-paper">Pontos Eletrônicos</h1>
-      <p className="mt-2 text-smoke">
-        Controle total dos registros de ponto: visualize, corrija horários/tipos e exclua
-        batidas erradas, sempre com a localização GPS de cada registro.
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="font-serif text-3xl text-paper">Pontos Eletrônicos</h1>
+          <p className="mt-2 text-smoke">
+            Controle total dos registros de ponto: visualize, corrija horários/tipos e exclua
+            batidas erradas, sempre com a localização GPS de cada registro.
+          </p>
+        </div>
+        <button
+          onClick={() => {
+            setShowManual((v) => !v)
+          }}
+          className={`rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
+            showManual
+              ? 'border border-graphite-light text-mist hover:text-paper'
+              : 'bg-brass text-charcoal hover:opacity-90 shadow-sm'
+          }`}
+          title="Registrar ponto manualmente em nome de um colaborador"
+        >
+          {showManual ? '✕ Fechar' : '➕ Registrar Ponto'}
+        </button>
+      </div>
+
+      {/* Registro manual (colaborador sem celular) */}
+      {showManual && (
+        <ManualRegisterForm
+          employees={employees}
+          defaultEmployeeId={selectedEmployee}
+          onDone={refetch}
+        />
+      )}
 
       {/* Tabs */}
       <div className="mt-6 flex flex-wrap gap-1 rounded-lg border border-graphite-light bg-graphite p-1 w-fit">

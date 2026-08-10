@@ -50,7 +50,7 @@ Layout raiz: `RootLayout` (Navbar + Footer + WhatsAppFloat).
 | `/admin/contact` | `AdminContact` | Caixa de entrada do formulário de contato |
 | `/admin/media` | `AdminMedia` | Gerenciamento de assets de mídia (upload ledger) |
 | `/admin/employees` | `AdminEmployees` | CRUD de colaboradores + resumo "Hoje" (registros do dia) e atalho "Ver pontos" |
-| `/admin/time-records` | `AdminTimeRecords` | Centro de controle: timeline visual, lista com GPS, filtro por período, corrigir/excluir registros, relatório mensal de horas, exportação CSV e alertas de pendências do dia |
+| `/admin/time-records` | `AdminTimeRecords` | Centro de controle: timeline visual, lista com GPS, filtro por período, registrar manualmente (colaborador sem celular), corrigir/excluir registros, relatório mensal de horas, exportação CSV e alertas de pendências do dia |
 | `*` | `NotFound` | 404 no admin |
 
 ---
@@ -100,6 +100,7 @@ Layout raiz: `RootLayout` (Navbar + Footer + WhatsAppFloat).
 | `GET/POST` | `/admin/employees` | CRUD de colaboradores (gera PIN) |
 | `GET/PATCH` | `/admin/employees/:id` | Atualizar/resetar PIN de colaborador |
 | `GET` | `/admin/time-records` | `?employee_id=&date_from=&date_to=&limit=` | Histórico de registros de ponto |
+| `POST` | `/admin/time-records` | — | Registrar ponto manualmente em nome do colaborador (sem GPS — ex.: esqueceu o celular) |
 | `GET` | `/admin/time-records/daily` | Registros do dia atual (dashboard) |
 | `PATCH` | `/admin/time-records/:id` | Corrigir registro (recordType e/ou recordedAt) |
 | `DELETE` | `/admin/time-records/:id` | Excluir registro (batida errada/duplicada) |

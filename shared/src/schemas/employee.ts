@@ -25,6 +25,13 @@ export const timeRecordInputSchema = z.object({
 export type TimeRecordInput = z.infer<typeof timeRecordInputSchema>
 
 /** Correção administrativa de um registro de ponto (admin corrige tipo e/ou horário). */
+export const timeRecordManualCreateSchema = z.object({
+  employeeId: z.string().uuid(),
+  recordType: recordTypeEnum,
+  recordedAt: z.string().datetime(),
+})
+export type TimeRecordManualCreate = z.infer<typeof timeRecordManualCreateSchema>
+
 export const timeRecordUpdateSchema = z
   .object({
     recordType: recordTypeEnum.optional(),
